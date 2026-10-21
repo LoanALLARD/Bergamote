@@ -90,7 +90,7 @@ public struct NativeExtractor: DocumentExtracting {
             let text = page.string ?? ""
             if text.trimmingCharacters(in: .whitespacesAndNewlines).count >= minimumTextPerPage {
                 pages.append(ExtractedPage(number: index + 1, blocks: Self.lines(of: page, text: text), usedOCR: false))
-            } else if let image = render(page) {
+            } else if let image = PDFRendering.image(of: page, dpi: ocrDPI) {
                 pages.append(ExtractedPage(number: index + 1, blocks: try ocr.recognize(image), usedOCR: true))
             }
         }
@@ -120,22 +120,5 @@ public struct NativeExtractor: DocumentExtracting {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .map { TextBlock(text: $0) }
-    }
-
-    func render(_ page: PDFPage) -> CGImage? {
-        let box = page.bounds(for: .mediaBox)
-        let scale = ocrDPI / 72
-        let width = Int(box.width * scale), height = Int(box.height * scale)
-        guard width > 0, height > 0,
-              let context = CGContext(
-                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
-        else { return nil }
-        context.setFillColor(.white)
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        context.scaleBy(x: scale, y: scale)
-        context.translateBy(x: -box.minX, y: -box.minY)
-        page.draw(with: .mediaBox, to: context)
-        return context.makeImage()
     }
 }

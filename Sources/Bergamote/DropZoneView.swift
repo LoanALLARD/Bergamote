@@ -27,6 +27,10 @@ struct DropZoneView: View {
                     return true
                 } isTargeted: { isTargeted = $0 }
 
+            Label("En glissant des fichiers n'importe où, tapez ⇧ pour convertir ou ⌘ pour les outils.", systemImage: "circle.grid.cross")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             if model.inProgressCount > 0 {
                 Label("\(model.inProgressCount) document(s) en cours d'analyse", systemImage: "sparkles")
             } else if let message = model.lastImportMessage {

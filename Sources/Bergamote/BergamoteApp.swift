@@ -38,6 +38,10 @@ struct BergamoteApp: App {
                 }
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView()
+        }
     }
 }
 

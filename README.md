@@ -74,6 +74,36 @@ sandboxée) contient métadonnées, `chunk_fts` (FTS5), `chunk_vec` (vec0) et la
 Si le modèle d'embedding change, `chunk_vec` est recréée et les documents sont ré-embeddés en fond,
 pendant que la recherche lexicale continue de fonctionner.
 
+## Le camembert (menu circulaire)
+
+Le geste : glissez des fichiers depuis le Finder (ou n'importe quelle app), puis
+tapez **⇧** pour le camembert de conversion ou **⌘** pour le camembert d'outils. Il s'ouvre sous le
+curseur ; lâchez les fichiers sur une part. Les touches se changent dans Réglages (⌘,). Depuis la
+bibliothèque, un clic droit sur un document propose aussi « Convertir… » et « Outils… ».
+
+| Camembert | Fichiers | Parts proposées |
+|---|---|---|
+| Conversion (⇧) | images | PNG, JPEG, HEIC, AVIF, TIFF, GIF, BMP (ceux que macOS sait écrire), PDF |
+| | PDF | pages en PNG / JPEG / HEIC, TXT |
+| | Word, RTF, texte | PDF paginé, DOCX, RTF, TXT |
+| Outils (⌘) | images, PDF | Indexer, Compresser, Anonymiser (EXIF, GPS, auteur), Cherchable (couche OCR), Fusionner, Texte |
+| | autres documents | Indexer, Texte |
+
+- Les résultats vont dans Téléchargements › Bergamote. Les originaux ne sont jamais modifiés ni écrasés.
+- Une compression qui ne gagne rien ne produit pas de fichier.
+- Comment ça marche, côté code :
+  - **Détection :** `WheelTriggerDetector` est une machine à états pure, testée sans écran. Elle reçoit
+    l'état du bouton, le compteur du presse-papiers de glisser-déposer et les touches enfoncées.
+  - **Surveillance :** `RadialMenuController` suit la souris et les touches de modification dans tout
+    le système. Il fait aussi un relevé 30 fois par seconde tant que le bouton est enfoncé, pour voir
+    une touche tapée sans bouger la souris.
+  - **Affichage :** un `NSPanel` transparent, non activant, de niveau « menu ».
+  - **Accès aux fichiers :** le dépôt sur la part donne à l'app sandboxée l'accès à ces fichiers.
+    Cela évite de demander une permission large.
+- Conversions : uniquement les frameworks du système (ImageIO, PDFKit, CoreText, AppKit). PDFKit
+  (macOS 13+) fournit l'OCR enregistré dans le PDF (`saveTextFromOCROption`) et la compression des
+  images d'un PDF.
+
 ## Modèles
 
 | Rôle | Par défaut (aucun téléchargement) | Avec CamemBERT |
@@ -122,13 +152,16 @@ BERGAMOTE_MODELS_DIR=Models swift run Bergamote
 
 **Vérifié :**
 - compilation en Swift 6 strict, sans avertissement ;
-- 27 tests verts, dont le corpus d'essai et les rendus hors écran ;
+- 45 tests verts, dont le corpus d'essai, chaque conversion du camembert sur de vrais fichiers et
+  les rendus hors écran ;
 - `.app` sandboxé sans droit réseau, lancé pour de vrai : 7 documents importés via « Ouvrir avec »,
   cherchables en moins de 0,6 s (scans OCR compris) et analysés en 2,5 s au total.
 
 **Pas encore vérifié :**
-- les interactions à la souris et au clavier dans l'app réelle (glisser-déposer, ⌘K) n'ont pas été rejouées ;
-  seuls leurs rendus et la logique derrière ont été testés ;
+- les interactions à la souris et au clavier dans l'app réelle (glisser-déposer, ⌘K, geste du
+  camembert depuis le Finder) n'ont pas été rejouées ; seuls leurs rendus et la logique derrière ont
+  été testés. En particulier, il reste à confirmer que la surveillance globale des événements voit
+  bien un glisser du Finder sans demander la permission « Accessibilité » ;
 - la conversion Core ML n'a pas été lancée : le chemin `CoreMLSentenceEncoder` compile, mais n'a pas tourné sur un vrai modèle.
 
 **À faire pour passer du POC au produit :**

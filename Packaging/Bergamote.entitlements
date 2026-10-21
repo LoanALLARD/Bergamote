@@ -8,6 +8,9 @@
 	<!-- Lecture des fichiers et dossiers que l'utilisateur dépose ou choisit. -->
 	<key>com.apple.security.files.user-selected.read-only</key>
 	<true/>
+	<!-- Résultats du camembert : Téléchargements › Bergamote. -->
+	<key>com.apple.security.files.downloads.read-write</key>
+	<true/>
 	<!-- Pour mémoriser l'accès aux dossiers surveillés (security-scoped bookmarks). -->
 	<key>com.apple.security.files.bookmarks.app-scope</key>
 	<true/>

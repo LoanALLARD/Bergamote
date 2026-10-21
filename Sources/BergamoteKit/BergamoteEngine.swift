@@ -144,6 +144,43 @@ public final class BergamoteEngine: Sendable {
         library.url(forStoredPath: document.storedPath)
     }
 
+    // MARK: Camembert
+
+    public struct ActionOutcome: Sendable {
+        public var produced: [URL]
+        public var message: String
+    }
+
+    /// `~/Downloads/Bergamote` : sous sandbox, seul dossier de l'utilisateur où l'app peut écrire
+    /// sans lui redemander d'autorisation (entitlement « downloads.read-write »).
+    public static func defaultOutputDirectory() -> URL {
+        FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Bergamote", isDirectory: true)
+    }
+
+    /// Exécute une part du camembert sur des fichiers déposés ou sélectionnés.
+    public func perform(_ action: FileAction, on urls: [URL], outputDirectory: URL = defaultOutputDirectory()) async throws -> ActionOutcome {
+        let started = Date()
+        let outcome: ActionOutcome
+        if action.operation == .index {
+            let report = try await importItems(urls)
+            var message = "\(report.added.count) ajouté(s) à la bibliothèque"
+            if report.duplicates > 0 { message += ", \(report.duplicates) déjà présent(s)" }
+            outcome = ActionOutcome(produced: [], message: message)
+        } else {
+            let produced = try await FileConverter(outputDirectory: outputDirectory).perform(action.operation, on: urls)
+            let message = produced.isEmpty
+                ? "Rien à gagner : fichiers déjà optimisés"
+                : "\(produced.count) fichier(s) dans Téléchargements › Bergamote"
+            outcome = ActionOutcome(produced: produced, message: message)
+        }
+        Logger.pipeline.notice("""
+            Camembert : \(action.title, privacy: .public) sur \(urls.count, privacy: .public) fichier(s) → \
+            \(outcome.produced.count, privacy: .public) créé(s) en \(DocumentIndexer.milliseconds(since: started), privacy: .public) ms
+            """)
+        return outcome
+    }
+
     private func loadClassifierExamples() async throws {
         let examples = try await database.reader.read { db in
             try Row.fetchAll(db, sql: "SELECT id, docType FROM document WHERE docTypeSource = 'user' AND docType IS NOT NULL")

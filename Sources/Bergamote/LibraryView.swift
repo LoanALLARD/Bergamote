@@ -90,7 +90,12 @@ struct DocumentListView: View {
         @Bindable var model = model
         List(selection: $model.selectedDocumentID) {
             ForEach(model.visibleDocuments) { document in
-                DocumentRow(document: document).tag(document.id ?? -1)
+                DocumentRow(document: document)
+                    .tag(document.id ?? -1)
+                    .contextMenu {
+                        Button("Convertir…", systemImage: "circle.grid.cross") { model.showWheel(.conversion, for: document) }
+                        Button("Outils…", systemImage: "wrench.and.screwdriver") { model.showWheel(.tools, for: document) }
+                    }
             }
         }
         .overlay {

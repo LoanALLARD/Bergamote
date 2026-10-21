@@ -62,6 +62,38 @@ struct SnapshotTests {
         try await snapshot(DropZoneView().environment(model), size: CGSize(width: 320, height: 300), name: "6-barre-des-menus")
     }
 
+    @Test func renderRadialMenus() async throws {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let files = try FileManager.default.contentsOfDirectory(at: samples, includingPropertiesForKeys: nil)
+        let image = try #require(files.first { $0.pathExtension == "png" })
+        let pdfs = files.filter { $0.pathExtension == "pdf" }.sorted { $0.path < $1.path }
+        let size = CGSize(width: RadialMenuView.size, height: RadialMenuView.size)
+
+        let conversion = RadialMenuModel()
+        let imageActions = FileActionCatalog.actions(for: .conversion, inputs: [.png, .png, .png])
+        conversion.configure(kind: .conversion, mode: .drop, files: [image, image, image], actions: imageActions)
+        conversion.highlighted = 1
+        try await snapshot(RadialMenuView(model: conversion) { _, _ in }, size: size, name: "7-camembert-conversion", borderless: true)
+
+        let tools = RadialMenuModel()
+        tools.configure(kind: .tools, mode: .click, files: pdfs, actions: FileActionCatalog.actions(for: .tools, inputs: pdfs.map { _ in .pdf }))
+        tools.highlighted = 3
+        try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "8-camembert-outils", borderless: true)
+
+        tools.highlighted = nil
+        tools.status = .done("4 fichier(s) dans Téléchargements › Bergamote")
+        try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "9-camembert-termine", borderless: true)
+
+        // La part touchée par un point correspond bien à celle dessinée.
+        let center = RadialMenuView.size / 2
+        let radius = (RadialMenuView.innerRadius + RadialMenuView.outerRadius) / 2
+        for index in imageActions.indices {
+            let offset = RadialMenuView.labelOffset(index: index, count: imageActions.count)
+            let point = CGPoint(x: center + offset.width * radius / (radius + 4), y: center + offset.height * radius / (radius + 4))
+            #expect(RadialMenuView.slice(at: point, count: imageActions.count) == index)
+        }
+    }
+
     private func waitUntil(timeout: Duration = .seconds(15), _ condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now + timeout
         while !condition() && ContinuousClock.now < deadline {
@@ -92,13 +124,20 @@ struct SnapshotTests {
         return nil
     }
 
-    private func snapshot(_ view: some View, size: CGSize, name: String, inspect: (NSView) throws -> Void = { _ in }) async throws {
+    private func snapshot(
+        _ view: some View, size: CGSize, name: String, borderless: Bool = false,
+        inspect: (NSView) throws -> Void = { _ in }
+    ) async throws {
         _ = NSApplication.shared
         let window = NSWindow(
             contentRect: CGRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: borderless ? [.borderless] : [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
+        if borderless {
+            window.backgroundColor = .clear
+            window.isOpaque = false
+        }
         let hosting = NSHostingView(rootView: view)
         hosting.sceneBridgingOptions = [.toolbars, .title]
         window.contentView = hosting
