@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+build/
+Models/
+.venv*/
+__pycache__/
+*.xcodeproj/xcuserdata/
+.DS_Store
+SampleDocs/

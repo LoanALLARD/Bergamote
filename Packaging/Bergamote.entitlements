@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sandbox sans aucun droit réseau : la promesse « hors ligne » est garantie par le système. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Lecture des fichiers et dossiers que l'utilisateur dépose ou choisit. -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+	<!-- Pour mémoriser l'accès aux dossiers surveillés (security-scoped bookmarks). -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+</dict>
+</plist>
