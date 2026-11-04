@@ -69,6 +69,19 @@ public enum FileActionCatalog {
         return Array(actions.prefix(maximumSlices))
     }
 
+    /// Actions proposées quand le type des fichiers glissés n'est pas encore lisible.
+    public static func commonActions(for kind: WheelKind, writableImageTypes: Set<UTType> = FileConverter.writableImageTypes) -> [FileAction] {
+        switch kind {
+        case .conversion:
+            let images = imageFormats.prefix(3).filter { writableImageTypes.contains($0.1) }
+                .map { FileAction(title: $0.0, systemImage: "photo", operation: .convertImages($0.1)) }
+            return [FileAction(title: "PDF", systemImage: "doc.richtext", operation: .mergeIntoPDF)] + images
+                + [FileAction(title: "TXT", systemImage: "text.alignleft", operation: .extractText)]
+        case .tools:
+            return tools(inputs: [.png, .pdf], categories: [.image, .pdf])
+        }
+    }
+
     private static func conversions(inputs: [UTType], categories: Set<FileCategory>, writable: Set<UTType>) -> [FileAction] {
         let text = FileAction(title: "TXT", systemImage: "text.alignleft", operation: .extractText)
         switch categories {

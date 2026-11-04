@@ -78,6 +78,14 @@ struct WheelTests {
         #expect(FileActionCatalog.actions(for: .conversion, inputs: [.mp3], writableImageTypes: writable).isEmpty)
     }
 
+    @Test func commonActionsWhenTypesAreUnknown() {
+        let writable: Set<UTType> = [.png, .jpeg]
+        let conversion = FileActionCatalog.commonActions(for: .conversion, writableImageTypes: writable).map(\.title)
+        #expect(conversion == ["PDF", "PNG", "JPEG", "TXT"])
+        let tools = FileActionCatalog.commonActions(for: .tools).map(\.operation)
+        #expect(tools.first == .index && tools.contains(.compress) && tools.contains(.makeSearchable))
+    }
+
     @Test func toolsWheelAdaptsToInputs() {
         let forImages = FileActionCatalog.actions(for: .tools, inputs: [.png, .jpeg]).map(\.operation)
         #expect(forImages == [.index, .compress, .stripMetadata, .makeSearchable, .mergeIntoPDF, .extractText])

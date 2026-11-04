@@ -100,6 +100,11 @@ bibliothèque, un clic droit sur un document propose aussi « Convertir… » et
   - **Affichage :** un `NSPanel` transparent, non activant, de niveau « menu ».
   - **Accès aux fichiers :** le dépôt sur la part donne à l'app sandboxée l'accès à ces fichiers.
     Cela évite de demander une permission large.
+- Diagnostic du geste : lancer l'app avec `open build/Bergamote.app --args -wheel.debug YES`, puis
+  suivre `/usr/bin/log stream --predicate 'subsystem == "com.example.bergamote" AND category == "camembert"'`.
+  Chaque changement d'état (bouton, glisser, touches, décision) est journalisé, plus toutes les 5 s le
+  rythme des relevés et ce que l'app lit du glisser en cours. `-wheel.demo conversion` ouvre le
+  camembert tout seul au bout de 2 s, pour tester l'affichage sans le geste.
 - Conversions : uniquement les frameworks du système (ImageIO, PDFKit, CoreText, AppKit). PDFKit
   (macOS 13+) fournit l'OCR enregistré dans le PDF (`saveTextFromOCROption`) et la compression des
   images d'un PDF.
