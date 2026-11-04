@@ -2,7 +2,7 @@ import BergamoteKit
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(AppModel.self) private var model
+    @Environment(FolderAccessStore.self) private var folderAccess
     @AppStorage(RadialMenuController.enabledKey) private var isEnabled = true
     @AppStorage(RadialMenuController.conversionModifierKey) private var conversionModifier = WheelModifier.shift.rawValue
     @AppStorage(RadialMenuController.toolsModifierKey) private var toolsModifier = WheelModifier.command.rawValue
@@ -40,17 +40,17 @@ struct SettingsView: View {
             }
 
             Section {
-                ForEach(model.folderAccess.grants, id: \.self) { folder in
+                ForEach(folderAccess.grants, id: \.self) { folder in
                     HStack {
                         Label(folder.path(percentEncoded: false), systemImage: "folder")
                             .lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        Button("Retirer") { model.folderAccess.remove(folder) }
+                        Button("Retirer") { folderAccess.remove(folder) }
                     }
                 }
                 if FolderAccessStore.isSandboxed {
                     Button("Autoriser le dossier personnel…") {
-                        _ = model.folderAccess.requestAccess(covering: [FolderAccessStore.homeFolder])
+                        _ = folderAccess.requestAccess(covering: [FolderAccessStore.homeFolder])
                     }
                 }
             } header: {

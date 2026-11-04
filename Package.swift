@@ -8,37 +8,19 @@ let package = Package(
         .executable(name: "Bergamote", targets: ["Bergamote"]),
         .library(name: "BergamoteKit", targets: ["BergamoteKit"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.11.0"),
-    ],
     targets: [
-        // sqlite-vec compilé dans le binaire, contre le SQLite du système (voir vendor/README.md).
-        .target(
-            name: "CSQLiteVec",
-            exclude: ["vendor"],
-            linkerSettings: [.linkedLibrary("sqlite3")]
-        ),
-        // Tout le métier : index, file de jobs, extraction, NLP, recherche. Sans UI, donc testable.
-        .target(
-            name: "BergamoteKit",
-            dependencies: [
-                "CSQLiteVec",
-                .product(name: "GRDB", package: "GRDB.swift"),
-            ]
-        ),
-        // L'app SwiftUI : bibliothèque, aperçu PDF, palette ⌘K, zone de dépôt dans la barre des menus.
+        // Le cœur : geste du camembert, catalogue d'actions, conversions. Sans UI, donc testable.
+        .target(name: "BergamoteKit"),
+        // L'app de barre des menus : surveillance du geste, panneau du camembert, réglages.
         .executableTarget(
             name: "Bergamote",
-            dependencies: [
-                "BergamoteKit",
-                .product(name: "GRDB", package: "GRDB.swift"),
-            ]
+            dependencies: ["BergamoteKit"]
         ),
         .testTarget(
             name: "BergamoteKitTests",
             dependencies: ["BergamoteKit"]
         ),
-        // Rendu hors écran des vues SwiftUI (activé par BERGAMOTE_SAMPLES_DIR, voir README).
+        // Rendu hors écran du camembert (activé par BERGAMOTE_SNAPSHOT_DIR, voir README).
         .testTarget(
             name: "BergamoteAppTests",
             dependencies: ["Bergamote", "BergamoteKit"]

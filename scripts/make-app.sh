@@ -18,14 +18,6 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/Bergamote" "$APP/Contents/MacOS/"
 cp Packaging/Info.plist "$APP/Contents/"
 
-# Bundles de ressources SwiftPM des dépendances (ex. GRDB_GRDB.bundle).
-find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
-
-# Modèles Core ML optionnels (dossiers produits par scripts/convert_camembert.py).
-if [ -d Models ]; then
-  cp -R Models "$APP/Contents/Resources/Models"
-fi
-
 codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime \
   --entitlements Packaging/Bergamote.entitlements "$APP"
 echo "OK : $APP"

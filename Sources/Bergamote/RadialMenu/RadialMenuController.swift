@@ -11,8 +11,8 @@ import UniformTypeIdentifiers
 ///   touches de modification), doublé de moniteurs d'événements pour réagir plus vite. Le relevé ne
 ///   dépend pas des événements livrés pendant un glisser du Finder. La décision est prise par
 ///   `WheelTriggerDetector`.
-/// - App Nap désactivé pendant la surveillance, : sinon la minuterie est ralentie dès que
-///   l'app passe en arrière-plan.
+/// - App Nap désactivé pendant la surveillance : sinon la minuterie est ralentie dès que l'app
+///   passe en arrière-plan.
 /// - Fichiers : aperçu lu dans le presse-papiers de glisser-déposer ; l'accès réel vient du dépôt.
 /// - Diagnostic : `open Bergamote.app --args -wheel.debug YES` journalise chaque transition.
 @MainActor
@@ -24,20 +24,15 @@ final class RadialMenuController {
     static let debugKey = "wheel.debug"
 
     let model = RadialMenuModel()
-    private let engine: BergamoteEngine
     private let folderAccess: FolderAccessStore
     private var detector = WheelTriggerDetector()
     private var panel: NSPanel?
     private var monitors: [Any] = []
-    private var clickModeMonitors: [Any] = []
     private var pollTimer: Timer?
     private var activity: NSObjectProtocol?
     private var trace = Trace()
-    /// Originaux « logiques » des fichiers ouverts depuis la bibliothèque (voir `FileConverter.besides`).
-    private var originals: [URL]?
 
-    init(engine: BergamoteEngine, folderAccess: FolderAccessStore) {
-        self.engine = engine
+    init(folderAccess: FolderAccessStore) {
         self.folderAccess = folderAccess
     }
 
@@ -118,14 +113,9 @@ final class RadialMenuController {
         return urls.map { ($0 as NSURL).filePathURL ?? $0 }
     }
 
-    static func contentType(of url: URL) -> UTType? {
-        if !url.pathExtension.isEmpty, let type = UTType(filenameExtension: url.pathExtension) { return type }
-        return try? url.resourceValues(forKeys: [.contentTypeKey]).contentType
-    }
-
     private func presentForDrag(_ kind: WheelKind) {
         let urls = Self.draggedFiles()
-        let types = urls.compactMap(Self.contentType)
+        let types = urls.compactMap(FileTypes.contentType)
         var actions = FileActionCatalog.actions(for: kind, inputs: types)
         // Des fichiers sont glissés mais leur type reste illisible avant le dépôt : on propose les
         // actions courantes, vérifiées au dépôt, quand la sandbox donne accès aux fichiers.
@@ -142,22 +132,8 @@ final class RadialMenuController {
             hidePanel()
             return
         }
-        originals = nil
-        model.configure(kind: kind, mode: .drop, files: urls, actions: actions)
+        model.configure(kind: kind, files: urls, actions: actions)
         showPanel(at: NSEvent.mouseLocation)
-    }
-
-    /// Ouvre le camembert sur des fichiers déjà accessibles (documents de la bibliothèque).
-    /// `originals` : fichiers importés dont ce sont les copies ; les résultats iront à côté d'eux.
-    func present(_ kind: WheelKind, for urls: [URL], besides originals: [URL]? = nil, at location: NSPoint = NSEvent.mouseLocation) {
-        let types = urls.map { DocumentLibrary.contentType(of: $0) ?? .data }
-        let actions = FileActionCatalog.actions(for: kind, inputs: types)
-        guard !actions.isEmpty else { return }
-        self.originals = originals
-        model.configure(kind: kind, mode: .click, files: urls, actions: actions)
-        showPanel(at: location)
-        panel?.makeKey()
-        watchOutsideClicksAndEscape()
     }
 
     private func dismissAfterDrag() {
@@ -165,7 +141,7 @@ final class RadialMenuController {
         // un instant à l'action pour démarrer, sinon on ferme.
         Task {
             try? await Task.sleep(for: .milliseconds(250))
-            if model.status == .idle, model.mode == .drop { hidePanel() }
+            if model.status == .idle { hidePanel() }
         }
     }
 
@@ -184,7 +160,7 @@ final class RadialMenuController {
 
     private func makePanel() -> NSPanel {
         let size = RadialMenuView.size
-        let panel = RadialMenuPanel(
+        let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: size, height: size),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.isFloatingPanel = true
@@ -203,29 +179,7 @@ final class RadialMenuController {
     private func hidePanel() {
         panel?.orderOut(nil)
         detector.dismiss()
-        model.configure(kind: model.kind, mode: .drop, files: [], actions: [])
-        clickModeMonitors.forEach(NSEvent.removeMonitor)
-        clickModeMonitors.removeAll()
-    }
-
-    private func watchOutsideClicksAndEscape() {
-        clickModeMonitors.forEach(NSEvent.removeMonitor)
-        clickModeMonitors.removeAll()
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
-            MainActor.assumeIsolated { self?.hidePanel() }
-        }) {
-            clickModeMonitors.append(global)
-        }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .keyDown], handler: { [weak self] event in
-            let isEscape = event.type == .keyDown && event.keyCode == 53
-            let isOutside = event.type == .leftMouseDown && !(event.window is RadialMenuPanel)
-            if isEscape || isOutside {
-                MainActor.assumeIsolated { self?.hidePanel() }
-            }
-            return isEscape ? nil : event
-        }) {
-            clickModeMonitors.append(local)
-        }
+        model.configure(kind: model.kind, files: [], actions: [])
     }
 
     // MARK: Action
@@ -234,54 +188,58 @@ final class RadialMenuController {
         guard model.status == .idle, !urls.isEmpty else { return }
         // Après un camembert « actions courantes », on vérifie maintenant que les fichiers déposés
         // (désormais accessibles) se prêtent à l'action choisie.
-        let types = urls.map { DocumentLibrary.contentType(of: $0) ?? .data }
+        let types = urls.map { FileTypes.contentType(of: $0) ?? .data }
         guard FileActionCatalog.actions(for: model.kind, inputs: types).contains(where: { $0.operation == action.operation }) else {
-            model.status = .failed("« \(action.title) » ne s'applique pas à ces fichiers")
-            Task {
-                try? await Task.sleep(for: .seconds(1.6))
-                hidePanel()
-            }
+            finish(with: .failed("« \(action.title) » ne s'applique pas à ces fichiers"))
             return
         }
 
         // Le résultat va à côté de l'original : il faut le droit d'écrire dans son dossier.
-        let originals = self.originals
-        if action.operation != .index {
-            let folders = Set((originals ?? urls).map { $0.deletingLastPathComponent() })
-            if let missing = folders.first(where: { !FileManager.default.fileExists(atPath: $0.path) }) {
-                model.status = .failed("Dossier d'origine introuvable : \(missing.lastPathComponent)")
-                Task {
-                    try? await Task.sleep(for: .seconds(1.6))
-                    hidePanel()
-                }
+        let folders = Set(urls.map { $0.deletingLastPathComponent() })
+        if !folderAccess.covers(folders) {
+            // Première fois : le camembert s'efface le temps de la demande d'autorisation.
+            let center = panel.map { NSPoint(x: $0.frame.midX, y: $0.frame.midY) } ?? NSEvent.mouseLocation
+            panel?.orderOut(nil)
+            guard folderAccess.requestAccess(covering: folders) else {
+                Logger.wheel.notice("Camembert : accès au dossier refusé, rien n'a été enregistré")
+                NSSound.beep()
+                hidePanel()
                 return
             }
-            if !folderAccess.covers(folders) {
-                // Première fois : le camembert s'efface le temps de la demande d'autorisation.
-                let center = panel.map { NSPoint(x: $0.frame.midX, y: $0.frame.midY) } ?? NSEvent.mouseLocation
-                panel?.orderOut(nil)
-                guard folderAccess.requestAccess(covering: folders) else {
-                    Logger.wheel.notice("Camembert : accès au dossier refusé, rien n'a été enregistré")
-                    NSSound.beep()
-                    hidePanel()
-                    return
-                }
-                showPanel(at: center)
-            }
+            showPanel(at: center)
         }
 
         model.status = .working(action.title)
-        let engine = engine
         let scopes = folderAccess.startAccessing()
+        let started = Date()
         Task {
             defer { scopes.forEach { $0.stopAccessingSecurityScopedResource() } }
-            do {
-                // Pas d'ouverture du Finder : le fichier apparaît simplement à côté de l'original.
-                let outcome = try await engine.perform(action, on: urls, besides: originals)
-                model.status = .done(outcome.message)
-            } catch {
-                model.status = .failed(error.localizedDescription)
+            // Conversion hors du fil principal ; pas d'ouverture du Finder : le fichier apparaît
+            // simplement à côté de l'original.
+            let result = await Task.detached(priority: .userInitiated) {
+                Result { try FileConverter().perform(action.operation, on: urls) }
+            }.value
+            switch result {
+            case .success(let produced):
+                Logger.wheel.notice("""
+                    Camembert : \(action.title, privacy: .public) sur \(urls.count, privacy: .public) fichier(s) → \
+                    \(produced.count, privacy: .public) créé(s) en \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms
+                    """)
+                finish(with: .done(FileConverter.summary(ofCreated: produced.count)))
+            case .failure(let error):
+                Logger.wheel.error("Camembert : échec de \(action.title, privacy: .public) : \(error.localizedDescription, privacy: .public)")
+                finish(with: .failed(error.localizedDescription))
             }
+        }
+    }
+
+    /// Affiche le résultat au centre du camembert, le garde pour le panneau de la barre des
+    /// menus, puis referme.
+    private func finish(with status: RadialMenuModel.Status) {
+        model.status = status
+        if case .done(let message) = status { model.lastResult = message }
+        if case .failed(let message) = status { model.lastResult = message }
+        Task {
             try? await Task.sleep(for: .seconds(1.2))
             hidePanel()
         }
@@ -314,7 +272,7 @@ private struct Trace {
         if Date().timeIntervalSince(windowStart) >= 5 {
             let items = NSPasteboard(name: .drag).pasteboardItems?.count ?? 0
             let files = RadialMenuController.draggedFiles()
-            let typed = files.compactMap(RadialMenuController.contentType).count
+            let typed = files.compactMap(FileTypes.contentType).count
             let rate = samples
             Logger.wheel.notice("""
                 rythme : \(rate, privacy: .public) relevés en 5 s ; presse-papiers de glisser : \
@@ -328,11 +286,6 @@ private struct Trace {
 
 extension Logger {
     static let wheel = Logger(subsystem: "com.example.bergamote", category: "camembert")
-}
-
-/// Panneau sans bordure qui peut recevoir le clavier (Échap) sans activer l'app.
-final class RadialMenuPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
 }
 
 extension WheelModifier {

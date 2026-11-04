@@ -20,9 +20,9 @@ struct ConversionTests {
         converter = FileConverter(outputDirectory: output)
     }
 
-    @Test func transparentPNGBecomesJPEGOnWhite() async throws {
+    @Test func transparentPNGBecomesJPEGOnWhite() throws {
         let png = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("logo.png"), type: .png)
-        let produced = try await converter.perform(.convertImages(.jpeg), on: [png])
+        let produced = try converter.perform(.convertImages(.jpeg), on: [png])
         let jpeg = try #require(produced.first)
         #expect(jpeg.lastPathComponent == "logo.jpeg")
         let image = try #require(Images.load(jpeg))
@@ -31,74 +31,74 @@ struct ConversionTests {
         #expect(corner.r > 240 && corner.g > 240 && corner.b > 240, "fond attendu blanc, obtenu \(corner)")
 
         // Deuxième conversion du même fichier : jamais d'écrasement.
-        #expect(try await converter.perform(.convertImages(.jpeg), on: [png]).first?.lastPathComponent == "logo 2.jpeg")
+        #expect(try converter.perform(.convertImages(.jpeg), on: [png]).first?.lastPathComponent == "logo 2.jpeg")
     }
 
-    @Test func imagesAndPDFMergeInOrder() async throws {
+    @Test func imagesAndPDFMergeInOrder() throws {
         let first = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("a.png"), type: .png)
         let pdf = input.appendingPathComponent("b.pdf")
         try TestFiles.textPDF(["Page un", "Page deux"], at: pdf)
-        let merged = try #require(try await converter.perform(.mergeIntoPDF, on: [first, pdf]).first)
+        let merged = try #require(try converter.perform(.mergeIntoPDF, on: [first, pdf]).first)
         let document = try #require(PDFDocument(url: merged))
         #expect(document.pageCount == 3)
         #expect(document.page(at: 1)?.string?.contains("Page un") == true)
         #expect(merged.lastPathComponent == "a (fusion).pdf")
     }
 
-    @Test func pdfPagesBecomeImages() async throws {
+    @Test func pdfPagesBecomeImages() throws {
         let pdf = input.appendingPathComponent("rapport.pdf")
         try TestFiles.textPDF(["Un", "Deux"], at: pdf)
-        let pages = try await converter.perform(.renderPages(.png), on: [pdf])
+        let pages = try converter.perform(.renderPages(.png), on: [pdf])
         #expect(pages.map(\.lastPathComponent) == ["rapport-p1.png", "rapport-p2.png"])
         let image = try #require(Images.load(pages[0]))
         #expect(image.width == Int(595 * 150 / 72))
     }
 
-    @Test func wordDocumentConvertsToPDFAndText() async throws {
+    @Test func wordDocumentConvertsToPDFAndText() throws {
         let text = NSAttributedString(string: Samples.lease, attributes: [.font: NSFont.systemFont(ofSize: 12)])
         let docx = input.appendingPathComponent("bail.docx")
         try text.data(from: NSRange(location: 0, length: text.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.officeOpenXML])
             .write(to: docx)
 
-        let pdf = try #require(try await converter.perform(.textToPDF, on: [docx]).first)
+        let pdf = try #require(try converter.perform(.textToPDF, on: [docx]).first)
         #expect(PDFDocument(url: pdf)?.string?.contains("CONTRAT DE BAIL") == true)
 
-        let txt = try #require(try await converter.perform(.convertText(.plainText), on: [docx]).first)
+        let txt = try #require(try converter.perform(.convertText(.plainText), on: [docx]).first)
         #expect(try String(contentsOf: txt, encoding: .utf8).contains("Article 3"))
 
-        let rtf = try #require(try await converter.perform(.convertText(.rtf), on: [txt]).first)
+        let rtf = try #require(try converter.perform(.convertText(.rtf), on: [txt]).first)
         #expect(rtf.pathExtension == "rtf")
         #expect(try NSAttributedString(url: rtf, options: [:], documentAttributes: nil).string.contains("Article 3"))
     }
 
-    @Test func longTextIsPaginated() async throws {
+    @Test func longTextIsPaginated() throws {
         let txt = input.appendingPathComponent("long.txt")
         try String(repeating: "Une ligne de texte assez longue pour remplir plusieurs pages.\n", count: 400).write(to: txt, atomically: true, encoding: .utf8)
-        let pdf = try #require(try await converter.perform(.textToPDF, on: [txt]).first)
+        let pdf = try #require(try converter.perform(.textToPDF, on: [txt]).first)
         #expect((PDFDocument(url: pdf)?.pageCount ?? 0) > 3)
     }
 
-    @Test func scannedPDFBecomesSearchableAndExtractable() async throws {
+    @Test func scannedPDFBecomesSearchableAndExtractable() throws {
         let scan = input.appendingPathComponent("scan.pdf")
         try TestFiles.scannedPDF("FACTURE N° 2025-118\nTotal TTC : 1 234,56 €", at: scan)
         let scanText = PDFDocument(url: scan)?.string ?? ""
         #expect(scanText.isEmpty, "le scan de départ n'a pas de couche texte")
 
-        let searchable = try #require(try await converter.perform(.makeSearchable, on: [scan]).first)
+        let searchable = try #require(try converter.perform(.makeSearchable, on: [scan]).first)
         #expect(searchable.lastPathComponent == "scan (cherchable).pdf")
         #expect(PDFDocument(url: searchable)?.string?.localizedCaseInsensitiveContains("facture") == true)
 
-        let txt = try #require(try await converter.perform(.extractText, on: [scan]).first)
+        let txt = try #require(try converter.perform(.extractText, on: [scan]).first)
         #expect(try String(contentsOf: txt, encoding: .utf8).contains("1 234,56"))
     }
 
-    @Test func metadataIsStrippedButOrientationKept() async throws {
+    @Test func metadataIsStrippedButOrientationKept() throws {
         let photo = input.appendingPathComponent("photo.jpg")
         try Images.writeJPEGWithMetadata(to: photo)
         let before = try #require(Images.properties(photo))
         #expect(before[kCGImagePropertyGPSDictionary] != nil)
 
-        let clean = try #require(try await converter.perform(.stripMetadata, on: [photo]).first)
+        let clean = try #require(try converter.perform(.stripMetadata, on: [photo]).first)
         let after = try #require(Images.properties(clean))
         #expect(after[kCGImagePropertyGPSDictionary] == nil)
         #expect((after[kCGImagePropertyExifDictionary] as? [CFString: Any])?[kCGImagePropertyExifDateTimeOriginal] == nil)
@@ -106,7 +106,7 @@ struct ConversionTests {
         #expect(after[kCGImagePropertyOrientation] as? Int == 6)
     }
 
-    @Test func pdfMetadataIsStripped() async throws {
+    @Test func pdfMetadataIsStripped() throws {
         let pdf = input.appendingPathComponent("signe.pdf")
         var box = TestFiles.pageBox
         let context = try #require(CGContext(pdf as CFURL, mediaBox: &box, [kCGPDFContextAuthor: "Camille Martin", kCGPDFContextTitle: "Bail"] as CFDictionary))
@@ -115,39 +115,27 @@ struct ConversionTests {
         context.closePDF()
         #expect(PDFDocument(url: pdf)?.documentAttributes?[PDFDocumentAttribute.authorAttribute] as? String == "Camille Martin")
 
-        let clean = try #require(try await converter.perform(.stripMetadata, on: [pdf]).first)
+        let clean = try #require(try converter.perform(.stripMetadata, on: [pdf]).first)
         #expect(PDFDocument(url: clean)?.documentAttributes?[PDFDocumentAttribute.authorAttribute] == nil)
     }
 
-    @Test func compressionKeepsOnlyRealGains() async throws {
+    @Test func compressionKeepsOnlyRealGains() throws {
         let big = try Images.write(Images.noise(width: 3000, height: 2000), to: input.appendingPathComponent("grande.png"), type: .png)
-        let compressed = try #require(try await converter.perform(.compress, on: [big]).first)
+        let compressed = try #require(try converter.perform(.compress, on: [big]).first)
         #expect(compressed.lastPathComponent == "grande (compressé).jpeg")
         #expect(FileConverter.size(of: compressed) < FileConverter.size(of: big) / 4)
         #expect(try #require(Images.load(compressed)).width == 2560)
 
         // Une petite image déjà compacte : rien à gagner, aucun fichier produit.
         let tiny = try Images.write(Images.solid(width: 40, height: 40), to: input.appendingPathComponent("petite.jpg"), type: .jpeg, quality: 0.3)
-        #expect(try await converter.perform(.compress, on: [tiny]).isEmpty)
+        #expect(try converter.perform(.compress, on: [tiny]).isEmpty)
     }
 
-    @Test func resultsLandBesideTheOriginal() async throws {
+    @Test func resultsLandBesideTheOriginal() throws {
         let png = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("logo.png"), type: .png)
-        let produced = try await FileConverter().perform(.convertImages(.jpeg), on: [png])
+        let produced = try FileConverter().perform(.convertImages(.jpeg), on: [png])
         #expect(produced.map(\.path) == [input.appendingPathComponent("logo.jpeg").path])
         #expect(FileManager.default.fileExists(atPath: png.path), "l'original reste en place")
-    }
-
-    @Test func libraryCopiesUseTheImportedFileForNameAndFolder() async throws {
-        // Copie de bibliothèque nommée par empreinte, original importé ailleurs sous son vrai nom.
-        let copy = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("3f9a0c.png"), type: .png)
-        let originalFolder = input.appendingPathComponent("Factures", isDirectory: true)
-        try FileManager.default.createDirectory(at: originalFolder, withIntermediateDirectories: true)
-        var converter = FileConverter()
-        converter.besides = [copy: originalFolder.appendingPathComponent("tampon.png")]
-        let produced = try await converter.perform(.convertImages(.jpeg), on: [copy])
-        #expect(produced.map(\.lastPathComponent) == ["tampon.jpeg"])
-        #expect(produced.first?.deletingLastPathComponent().lastPathComponent == "Factures")
     }
 
     @Test func folderGrantsCoverSubfolders() {
@@ -170,16 +158,6 @@ struct ConversionTests {
         #expect(NSSound(data: wav) != nil)
     }
 
-    @Test func indexActionAddsToLibrary() async throws {
-        let root = try TestFiles.temporaryDirectory()
-        let engine = try await BergamoteEngine.bootstrap(root: root, embedder: HashingEmbedder(), bundledModels: nil)
-        let pdf = input.appendingPathComponent("facture.pdf")
-        try TestFiles.textPDF([Samples.invoice], at: pdf)
-        let index = try #require(FileActionCatalog.actions(for: .tools, inputs: [.pdf]).first { $0.operation == .index })
-        let outcome = try await engine.perform(index, on: [pdf], outputDirectory: output)
-        #expect(outcome.message.hasPrefix("1 ajouté"))
-        #expect(outcome.produced.isEmpty)
-    }
 }
 
 /// Fabrique d'images de test.

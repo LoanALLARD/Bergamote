@@ -35,24 +35,6 @@ struct RadialMenuView: View {
         .contentShape(Circle())
         .animation(.easeOut(duration: 0.12), value: model.highlighted)
         .onDrop(of: [.fileURL], delegate: WheelDropDelegate(model: model, perform: perform))
-        .onContinuousHover(coordinateSpace: .local) { phase in
-            guard model.mode == .click, model.status == .idle else { return }
-            let slice: Int? = if case .active(let location) = phase {
-                Self.slice(at: location, count: model.actions.count)
-            } else {
-                nil
-            }
-            if slice != model.highlighted {
-                model.highlighted = slice
-                if slice != nil { WheelSound.tick() }
-            }
-        }
-        .onTapGesture(coordinateSpace: .local) { location in
-            guard model.mode == .click, model.status == .idle,
-                  let index = Self.slice(at: location, count: model.actions.count)
-            else { return }
-            perform(model.actions[index], model.files)
-        }
     }
 
     /// Part sous un point de la vue (origine en haut à gauche).

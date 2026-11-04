@@ -8,23 +8,19 @@ public struct VisionOCR: Sendable {
 
     public init() {}
 
-    /// Une ligne reconnue = un bloc. Les rectangles de Vision sont déjà normalisés, origine en
-    /// bas à gauche : le même repère que les pages PDF.
-    public func recognize(_ image: CGImage) throws -> [TextBlock] {
+    /// Lignes reconnues, de haut en bas puis de gauche à droite.
+    public func recognize(_ image: CGImage) throws -> [String] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = languages
         request.usesLanguageCorrection = usesLanguageCorrection
         try VNImageRequestHandler(cgImage: image).perform([request])
+        // Les rectangles de Vision ont leur origine en bas à gauche : y décroissant = lecture vers le bas.
         let observations = (request.results ?? []).sorted {
-            // Lecture de haut en bas, puis de gauche à droite.
             abs($0.boundingBox.midY - $1.boundingBox.midY) > 0.01
                 ? $0.boundingBox.midY > $1.boundingBox.midY
                 : $0.boundingBox.minX < $1.boundingBox.minX
         }
-        return observations.compactMap { observation in
-            guard let candidate = observation.topCandidates(1).first else { return nil }
-            return TextBlock(text: candidate.string, bbox: NormalizedRect(observation.boundingBox))
-        }
+        return observations.compactMap { $0.topCandidates(1).first?.string }
     }
 }

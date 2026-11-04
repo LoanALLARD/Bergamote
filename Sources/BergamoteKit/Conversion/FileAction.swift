@@ -9,7 +9,7 @@ public enum FileCategory: Sendable, Hashable {
             self = .pdf
         } else if type.conforms(to: .image) {
             self = .image
-        } else if DocumentLibrary.isSupported(type) {
+        } else if FileTypes.isTextDocument(type) {
             self = .text  // texte brut, RTF, Word, OpenDocument
         } else {
             self = .other
@@ -29,7 +29,6 @@ public struct FileAction: Identifiable, Hashable, Sendable {
         case compress
         case stripMetadata
         case mergeIntoPDF
-        case index
     }
 
     public let title: String
@@ -109,9 +108,8 @@ public enum FileActionCatalog {
     }
 
     private static func tools(inputs: [UTType], categories: Set<FileCategory>) -> [FileAction] {
-        var actions = [FileAction(title: "Indexer", systemImage: "tray.and.arrow.down", operation: .index)]
-        let visual = categories.isSubset(of: [.image, .pdf])
-        if visual {
+        var actions: [FileAction] = []
+        if categories.isSubset(of: [.image, .pdf]) {
             actions.append(FileAction(title: "Compresser", systemImage: "arrow.down.right.and.arrow.up.left", operation: .compress))
             // Retire EXIF, GPS, auteur… : « Anonymiser » tient dans une part, « Sans métadonnées » non.
             actions.append(FileAction(title: "Anonymiser", systemImage: "tag.slash", operation: .stripMetadata))

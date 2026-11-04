@@ -21,13 +21,10 @@ public enum ConversionError: Error, LocalizedError {
 
 /// Les opérations du camembert, uniquement avec les frameworks du système (ImageIO, PDFKit,
 /// CoreText, AppKit). Les originaux ne sont jamais modifiés : chaque résultat est un nouveau
-/// fichier, posé à côté de l'original ou dans `outputDirectory` s'il est
-/// fourni, sans jamais écraser un fichier existant.
+/// fichier, posé à côté de l'original ou dans `outputDirectory` s'il est fourni, sans jamais
+/// écraser un fichier existant.
 public struct FileConverter: Sendable {
     public var outputDirectory: URL?
-    /// Original « logique » de chaque fichier traité : pour un document de la bibliothèque (copie
-    /// nommée par son empreinte), le résultat va à côté du fichier importé et en prend le nom.
-    public var besides: [URL: URL] = [:]
     public var imageQuality = 0.85
     public var compressionQuality = 0.6
     public var compressionMaxPixelSize = 2560
@@ -44,7 +41,7 @@ public struct FileConverter: Sendable {
 
     /// Exécute l'opération et renvoie les fichiers créés. Une compression qui ne gagne rien
     /// ne produit pas de fichier.
-    public func perform(_ operation: FileAction.Operation, on urls: [URL]) async throws -> [URL] {
+    public func perform(_ operation: FileAction.Operation, on urls: [URL]) throws -> [URL] {
         if let outputDirectory {
             try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         }
@@ -61,11 +58,16 @@ public struct FileConverter: Sendable {
         case .compress: return try urls.compactMap(compress)
         case .stripMetadata: return try urls.map(stripMetadata)
         case .mergeIntoPDF: return [try mergeIntoPDF(urls)]
-        case .index: return []  // ajout à la bibliothèque : géré par BergamoteEngine
-        case .extractText:
-            var outputs: [URL] = []
-            for url in urls { outputs.append(try await extractText(url)) }
-            return outputs
+        case .extractText: return try urls.map(extractText)
+        }
+    }
+
+    /// Message affiché au centre du camembert une fois l'action terminée.
+    public static func summary(ofCreated count: Int) -> String {
+        switch count {
+        case 0: "Rien à gagner : fichiers déjà optimisés"
+        case 1: "1 fichier créé à côté de l'original"
+        default: "\(count) fichiers créés à côté des originaux"
         }
     }
 
@@ -91,7 +93,7 @@ public struct FileConverter: Sendable {
     }
 
     func compress(_ url: URL) throws -> URL? {
-        let type = DocumentLibrary.contentType(of: url) ?? .data
+        let type = FileTypes.contentType(of: url) ?? .data
         let output: URL
         if type.conforms(to: .pdf) {
             guard let pdf = PDFDocument(url: url) else { throw ConversionError.unreadable(url) }
@@ -121,7 +123,7 @@ public struct FileConverter: Sendable {
     /// Retire EXIF, GPS, IPTC et XMP sans réencoder quand le format le permet (JPEG, PNG, TIFF) ;
     /// l'orientation est conservée pour que la photo reste à l'endroit. Pour un PDF : auteur, titre…
     func stripMetadata(_ url: URL) throws -> URL {
-        let type = DocumentLibrary.contentType(of: url) ?? .data
+        let type = FileTypes.contentType(of: url) ?? .data
         let output = uniqueOutputURL(for: url, suffix: " (sans métadonnées)", type: type)
         if type.conforms(to: .pdf) {
             guard let pdf = PDFDocument(url: url) else { throw ConversionError.unreadable(url) }
@@ -242,11 +244,10 @@ public struct FileConverter: Sendable {
         return output
     }
 
-    func extractText(_ url: URL) async throws -> URL {
-        let type = DocumentLibrary.contentType(of: url) ?? .data
-        let extracted = try await NativeExtractor().extract(url, contentType: type)
+    func extractText(_ url: URL) throws -> URL {
+        let text = try TextExtractor().text(of: url)
         let output = uniqueOutputURL(for: url, type: .plainText)
-        try extracted.text.write(to: output, atomically: true, encoding: .utf8)
+        try text.write(to: output, atomically: true, encoding: .utf8)
         return output
     }
 
@@ -254,9 +255,8 @@ public struct FileConverter: Sendable {
 
     /// `nom.ext`, puis `nom 2.ext`, `nom 3.ext`… à côté de l'original : on n'écrase jamais rien.
     func uniqueOutputURL(for source: URL, suffix: String = "", type: UTType) -> URL {
-        let original = besides[source] ?? source
-        let folder = outputDirectory ?? original.deletingLastPathComponent()
-        let base = original.deletingPathExtension().lastPathComponent + suffix
+        let folder = outputDirectory ?? source.deletingLastPathComponent()
+        let base = source.deletingPathExtension().lastPathComponent + suffix
         let ext = type.preferredFilenameExtension ?? "bin"
         var candidate = folder.appendingPathComponent(base).appendingPathExtension(ext)
         var index = 2
@@ -277,7 +277,7 @@ public struct FileConverter: Sendable {
     }
 
     static func pages(of url: URL) throws -> [PDFPage] {
-        let type = DocumentLibrary.contentType(of: url) ?? .data
+        let type = FileTypes.contentType(of: url) ?? .data
         if type.conforms(to: .pdf) {
             guard let pdf = PDFDocument(url: url) else { throw ConversionError.unreadable(url) }
             return (0..<pdf.pageCount).compactMap { pdf.page(at: $0)?.copy() as? PDFPage }
@@ -289,7 +289,7 @@ public struct FileConverter: Sendable {
     }
 
     static func attributedText(of url: URL) throws -> NSAttributedString {
-        let type = DocumentLibrary.contentType(of: url) ?? .plainText
+        let type = FileTypes.contentType(of: url) ?? .plainText
         if type.conforms(to: .plainText) {
             let text = try (try? String(contentsOf: url, encoding: .utf8)) ?? String(contentsOf: url, encoding: .isoLatin1)
             return NSAttributedString(string: text, attributes: [.font: NSFont.systemFont(ofSize: 11)])

@@ -1,19 +1,11 @@
 import BergamoteKit
 import Foundation
 import Observation
-import UniformTypeIdentifiers
 
 /// État du camembert affiché.
 @MainActor
 @Observable
 final class RadialMenuModel {
-    enum Mode {
-        /// Ouvert pendant un glisser-déposer : on lâche les fichiers sur une part.
-        case drop
-        /// Ouvert depuis la bibliothèque : les fichiers sont connus, on clique sur une part.
-        case click
-    }
-
     enum Status: Equatable {
         case idle
         case working(String)
@@ -22,15 +14,15 @@ final class RadialMenuModel {
     }
 
     private(set) var kind: WheelKind = .conversion
-    private(set) var mode: Mode = .drop
     private(set) var files: [URL] = []
     private(set) var actions: [FileAction] = []
     var highlighted: Int?
     var status: Status = .idle
+    /// Résultat de la dernière action, affiché dans le panneau de la barre des menus.
+    var lastResult: String?
 
-    func configure(kind: WheelKind, mode: Mode, files: [URL], actions: [FileAction]) {
+    func configure(kind: WheelKind, files: [URL], actions: [FileAction]) {
         self.kind = kind
-        self.mode = mode
         self.files = files
         self.actions = actions
         highlighted = nil

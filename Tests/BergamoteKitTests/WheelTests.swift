@@ -97,13 +97,13 @@ struct WheelTests {
         let conversion = FileActionCatalog.commonActions(for: .conversion, writableImageTypes: writable).map(\.title)
         #expect(conversion == ["PDF", "PNG", "JPEG", "TXT"])
         let tools = FileActionCatalog.commonActions(for: .tools).map(\.operation)
-        #expect(tools.first == .index && tools.contains(.compress) && tools.contains(.makeSearchable))
+        #expect(tools.first == .compress && tools.contains(.makeSearchable) && tools.contains(.extractText))
     }
 
     @Test func toolsWheelAdaptsToInputs() {
         let forImages = FileActionCatalog.actions(for: .tools, inputs: [.png, .jpeg]).map(\.operation)
-        #expect(forImages == [.index, .compress, .stripMetadata, .makeSearchable, .mergeIntoPDF, .extractText])
+        #expect(forImages == [.compress, .stripMetadata, .makeSearchable, .mergeIntoPDF, .extractText])
         let forText = FileActionCatalog.actions(for: .tools, inputs: [.plainText]).map(\.operation)
-        #expect(forText == [.index, .extractText])
+        #expect(forText == [.extractText])
     }
 }

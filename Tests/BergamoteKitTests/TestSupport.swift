@@ -55,20 +55,6 @@ enum TestFiles {
 }
 
 enum Samples {
-    static let invoice = """
-        FACTURE N° 2025-118
-        Volt & Fils SARL – 12 rue des Lilas, 69003 Lyon
-        SIRET : 732 829 320 00074
-        Fourniture d'électricité – période du 01/02/2025 au 28/02/2025
-        Consommation : 412 kWh
-        Total HT : 1 028,80 €
-        TVA 20 % : 205,76 €
-        Total TTC : 1 234,56 €
-        Échéance : 15 mars 2025
-        Règlement par virement – IBAN : FR76 3000 6000 0112 3456 7890 189
-        Contact : facturation@volt-fils.fr – 04 72 00 11 22
-        """
-
     static let lease = """
         CONTRAT DE BAIL D'HABITATION
         Entre les soussignés, le bailleur et le locataire, il a été convenu ce qui suit.
