@@ -5,17 +5,14 @@ import SwiftUI
 @main
 struct BergamoteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var model = AppModel()
+
+    private var model: AppModel { appDelegate.model }
 
     var body: some Scene {
         Window("Bergamote", id: "library") {
             LibraryView()
                 .environment(model)
                 .frame(minWidth: 960, minHeight: 600)
-                .task {
-                    appDelegate.attach(model)
-                    await model.start()
-                }
         }
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -32,10 +29,6 @@ struct BergamoteApp: App {
         MenuBarExtra("Bergamote", systemImage: "doc.text.magnifyingglass") {
             DropZoneView()
                 .environment(model)
-                .task {
-                    appDelegate.attach(model)
-                    await model.start()
-                }
         }
         .menuBarExtraStyle(.window)
 
@@ -46,32 +39,30 @@ struct BergamoteApp: App {
     }
 }
 
+/// Possède le modèle et démarre le moteur au lancement, que des fenêtres soient ouvertes ou non :
+/// le camembert doit surveiller le geste même quand la bibliothèque est fermée.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private weak var model: AppModel?
-    private var pendingURLs: [URL] = []
+    let model = AppModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Utilitaire de fond : macOS ne doit pas le quitter parce qu'aucune fenêtre n'est ouverte.
+        ProcessInfo.processInfo.disableAutomaticTermination("Surveillance du geste du camembert")
         // Nécessaire avec `swift run` (binaire hors bundle .app) pour obtenir une fenêtre au premier plan.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
+        Task { await model.start() }
     }
 
     /// « Ouvrir avec Bergamote », dépôt sur l'icône du Dock (types déclarés dans Info.plist).
-    /// Sous sandbox, macOS accorde l'accès aux fichiers ainsi ouverts.
+    /// Sous sandbox, macOS accorde l'accès aux fichiers ainsi ouverts. Le modèle met les fichiers
+    /// en attente si le moteur n'a pas encore démarré.
     func application(_ application: NSApplication, open urls: [URL]) {
-        if let model {
-            model.importItems(urls)
-        } else {
-            pendingURLs += urls
-        }
+        model.importItems(urls)
     }
 
-    func attach(_ model: AppModel) {
-        self.model = model
-        if !pendingURLs.isEmpty {
-            model.importItems(pendingURLs)
-            pendingURLs = []
-        }
+    /// Fermer la bibliothèque ne quitte pas l'app : le camembert et la barre des menus restent actifs.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 }
