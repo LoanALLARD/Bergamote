@@ -131,6 +131,45 @@ struct ConversionTests {
         #expect(try await converter.perform(.compress, on: [tiny]).isEmpty)
     }
 
+    @Test func resultsLandBesideTheOriginal() async throws {
+        let png = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("logo.png"), type: .png)
+        let produced = try await FileConverter().perform(.convertImages(.jpeg), on: [png])
+        #expect(produced.map(\.path) == [input.appendingPathComponent("logo.jpeg").path])
+        #expect(FileManager.default.fileExists(atPath: png.path), "l'original reste en place")
+    }
+
+    @Test func libraryCopiesUseTheImportedFileForNameAndFolder() async throws {
+        // Copie de bibliothèque nommée par empreinte, original importé ailleurs sous son vrai nom.
+        let copy = try Images.write(Images.redSquareOnTransparent(), to: input.appendingPathComponent("3f9a0c.png"), type: .png)
+        let originalFolder = input.appendingPathComponent("Factures", isDirectory: true)
+        try FileManager.default.createDirectory(at: originalFolder, withIntermediateDirectories: true)
+        var converter = FileConverter()
+        converter.besides = [copy: originalFolder.appendingPathComponent("tampon.png")]
+        let produced = try await converter.perform(.convertImages(.jpeg), on: [copy])
+        #expect(produced.map(\.lastPathComponent) == ["tampon.jpeg"])
+        #expect(produced.first?.deletingLastPathComponent().lastPathComponent == "Factures")
+    }
+
+    @Test func folderGrantsCoverSubfolders() {
+        let home = URL(fileURLWithPath: "/Users/camille", isDirectory: true)
+        #expect(FolderGrants.isCovered(URL(fileURLWithPath: "/Users/camille/Documents/Factures"), by: [home]))
+        #expect(FolderGrants.isCovered(home, by: [home]))
+        #expect(!FolderGrants.isCovered(URL(fileURLWithPath: "/Users/camilleB/Documents"), by: [home]))
+        #expect(!FolderGrants.isCovered(URL(fileURLWithPath: "/Volumes/Cle"), by: [home]))
+    }
+
+    @Test func clickSoundIsShortAndSoft() throws {
+        let wav = ClickSound.wav()
+        #expect(String(decoding: wav.prefix(4), as: UTF8.self) == "RIFF")
+        #expect(String(decoding: wav[8..<16], as: UTF8.self) == "WAVEfmt ")
+        let samples = wav.dropFirst(44).withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
+        #expect(samples.count == 1_323)  // 30 ms à 44,1 kHz
+        let peak = Double(samples.map { abs(Int($0)) }.max() ?? 0) / Double(Int16.max)
+        #expect(peak > 0.05 && peak <= 0.17, "niveau de crête \(peak)")
+        #expect(samples.suffix(10).allSatisfy { abs(Int($0)) < 200 }, "le clic doit finir sans craquement")
+        #expect(NSSound(data: wav) != nil)
+    }
+
     @Test func indexActionAddsToLibrary() async throws {
         let root = try TestFiles.temporaryDirectory()
         let engine = try await BergamoteEngine.bootstrap(root: root, embedder: HashingEmbedder(), bundledModels: nil)

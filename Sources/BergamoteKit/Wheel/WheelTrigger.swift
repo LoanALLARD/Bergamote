@@ -30,7 +30,8 @@ public enum WheelKind: String, Sendable, CaseIterable, Codable {
     }
 }
 
-/// Machine à états du geste du camembert : « glisser des fichiers, puis taper une touche de modification ».
+/// Machine à états du geste du camembert : « glisser des fichiers, puis taper une touche de
+/// modification ». Une touche déjà maintenue quand le glisser commence ouvre aussi le camembert.
 ///
 /// Elle ne reçoit que des échantillons (bouton de la souris, compteur du presse-papiers de
 /// glisser-déposer, touches enfoncées). La colle AppKit (moniteurs d'événements, minuterie) reste
@@ -87,11 +88,13 @@ public struct WheelTriggerDetector: Sendable {
             changeCountAtPress = idleChangeCount ?? sample.dragPasteboardChangeCount
             isDragging = false
         }
-        if sample.dragPasteboardChangeCount != changeCountAtPress {
+        let dragJustStarted = !isDragging && sample.dragPasteboardChangeCount != changeCountAtPress
+        if dragJustStarted {
             isDragging = true
         }
-        // « Taper » une combinaison : elle devient exactement l'ensemble des touches enfoncées.
-        guard isDragging, sample.modifiers != previousModifiers,
+        // Deux façons d'ouvrir : taper la combinaison pendant le glisser (elle devient exactement
+        // l'ensemble des touches enfoncées), ou la maintenir déjà quand le glisser commence.
+        guard isDragging, sample.modifiers != previousModifiers || dragJustStarted,
               let kind = bindings[sample.modifiers], kind != visible
         else { return .none }
         visible = kind

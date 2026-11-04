@@ -89,7 +89,12 @@ bibliothèque, un clic droit sur un document propose aussi « Convertir… » et
 | Outils (⌘) | images, PDF | Indexer, Compresser, Anonymiser (EXIF, GPS, auteur), Cherchable (couche OCR), Fusionner, Texte |
 | | autres documents | Indexer, Texte |
 
-- Les résultats vont dans Téléchargements › Bergamote. Les originaux ne sont jamais modifiés ni écrasés.
+- Les résultats sont créés à côté des originaux, dans le même dossier, sans ouvrir le Finder ; les
+  originaux ne sont jamais modifiés ni écrasés (`nom 2.ext` si besoin). Sous sandbox,
+  Bergamote demande une seule fois l'accès au dossier personnel (signet mémorisé, gérable dans les
+  Réglages), qui couvre tous les dossiers qu'il contient.
+- Le camembert s'ouvre en tapant la touche pendant le glisser, ou en la maintenant avant de
+  commencer à glisser. Un clic discret, synthétisé par l'app, accompagne chaque changement de part.
 - Une compression qui ne gagne rien ne produit pas de fichier.
 - Comment ça marche, côté code :
   - **Détection :** `WheelTriggerDetector` est une machine à états pure, testée sans écran. Elle reçoit

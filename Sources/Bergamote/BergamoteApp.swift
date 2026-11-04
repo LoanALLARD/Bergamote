@@ -41,6 +41,7 @@ struct BergamoteApp: App {
 
         Settings {
             SettingsView()
+                .environment(model)
         }
     }
 }

@@ -34,13 +34,27 @@ struct WheelTests {
         #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 5, modifiers: .shift)) == .show(.conversion))
     }
 
-    @Test func modifierHeldBeforeTheDragMustBeTappedAgain() {
+    /// Appui prolongé, tel que relevé dans les journaux d'un essai réel : ⇧ est maintenu avant le
+    /// clic, puis le Finder démarre le glisser (#1257 → #1260) sans que la touche change.
+    @Test func modifierHeldWhenTheDragStartsOpensTheWheel() {
         var detector = WheelTriggerDetector()
-        _ = detector.update(Sample(isMouseDown: false, dragPasteboardChangeCount: 1, modifiers: .shift))
-        _ = detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1, modifiers: .shift))
-        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 2, modifiers: .shift)) == .none)
-        _ = detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 2, modifiers: []))
-        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 2, modifiers: .shift)) == .show(.conversion))
+        _ = detector.update(Sample(isMouseDown: false, dragPasteboardChangeCount: 1257, modifiers: .shift))
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1257, modifiers: .shift)) == .none)
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1260, modifiers: .shift)) == .show(.conversion))
+        // Toujours maintenu : pas de seconde ouverture, ni après une fermeture pendant le même glisser.
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1260, modifiers: .shift)) == .none)
+        detector.dismiss()
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1260, modifiers: .shift)) == .none)
+        // Le taper de nouveau rouvre.
+        _ = detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1260, modifiers: []))
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1260, modifiers: .shift)) == .show(.conversion))
+    }
+
+    @Test func heldUnboundModifierDoesNothing() {
+        var detector = WheelTriggerDetector()
+        _ = detector.update(Sample(isMouseDown: false, dragPasteboardChangeCount: 1, modifiers: .option))
+        _ = detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 1, modifiers: .option))
+        #expect(detector.update(Sample(isMouseDown: true, dragPasteboardChangeCount: 2, modifiers: .option)) == .none)
     }
 
     @Test func customBindingsAndUnboundCombinations() {

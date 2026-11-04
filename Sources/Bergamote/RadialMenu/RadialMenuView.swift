@@ -37,10 +37,14 @@ struct RadialMenuView: View {
         .onDrop(of: [.fileURL], delegate: WheelDropDelegate(model: model, perform: perform))
         .onContinuousHover(coordinateSpace: .local) { phase in
             guard model.mode == .click, model.status == .idle else { return }
-            if case .active(let location) = phase {
-                model.highlighted = Self.slice(at: location, count: model.actions.count)
+            let slice: Int? = if case .active(let location) = phase {
+                Self.slice(at: location, count: model.actions.count)
             } else {
-                model.highlighted = nil
+                nil
+            }
+            if slice != model.highlighted {
+                model.highlighted = slice
+                if slice != nil { WheelSound.tick() }
             }
         }
         .onTapGesture(coordinateSpace: .local) { location in
@@ -150,7 +154,7 @@ struct WheelDropDelegate: DropDelegate {
         let slice = RadialMenuView.slice(at: info.location, count: model.actions.count)
         if slice != model.highlighted {
             model.highlighted = slice
-            if slice != nil { NSSound(named: "Tink")?.play() }
+            if slice != nil { WheelSound.tick() }
         }
         return DropProposal(operation: slice == nil ? .forbidden : .copy)
     }

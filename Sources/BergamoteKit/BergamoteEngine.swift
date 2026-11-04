@@ -151,15 +151,12 @@ public final class BergamoteEngine: Sendable {
         public var message: String
     }
 
-    /// `~/Downloads/Bergamote` : sous sandbox, seul dossier de l'utilisateur où l'app peut écrire
-    /// sans lui redemander d'autorisation (entitlement « downloads.read-write »).
-    public static func defaultOutputDirectory() -> URL {
-        FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Bergamote", isDirectory: true)
-    }
-
-    /// Exécute une part du camembert sur des fichiers déposés ou sélectionnés.
-    public func perform(_ action: FileAction, on urls: [URL], outputDirectory: URL = defaultOutputDirectory()) async throws -> ActionOutcome {
+    /// Exécute une part du camembert sur des fichiers déposés ou sélectionnés. Les résultats sont
+    /// posés à côté des originaux (ou de `originals`, pour des copies de la bibliothèque), ou dans
+    /// `outputDirectory` s'il est fourni.
+    public func perform(
+        _ action: FileAction, on urls: [URL], besides originals: [URL]? = nil, outputDirectory: URL? = nil
+    ) async throws -> ActionOutcome {
         let started = Date()
         let outcome: ActionOutcome
         if action.operation == .index {
@@ -168,10 +165,16 @@ public final class BergamoteEngine: Sendable {
             if report.duplicates > 0 { message += ", \(report.duplicates) déjà présent(s)" }
             outcome = ActionOutcome(produced: [], message: message)
         } else {
-            let produced = try await FileConverter(outputDirectory: outputDirectory).perform(action.operation, on: urls)
-            let message = produced.isEmpty
-                ? "Rien à gagner : fichiers déjà optimisés"
-                : "\(produced.count) fichier(s) dans Téléchargements › Bergamote"
+            var converter = FileConverter(outputDirectory: outputDirectory)
+            if let originals {
+                converter.besides = Dictionary(zip(urls, originals), uniquingKeysWith: { first, _ in first })
+            }
+            let produced = try await converter.perform(action.operation, on: urls)
+            let message = switch produced.count {
+            case 0: "Rien à gagner : fichiers déjà optimisés"
+            case 1: "1 fichier créé à côté de l'original"
+            default: "\(produced.count) fichiers créés à côté des originaux"
+            }
             outcome = ActionOutcome(produced: produced, message: message)
         }
         Logger.pipeline.notice("""

@@ -21,15 +21,19 @@ public enum ConversionError: Error, LocalizedError {
 
 /// Les opérations du camembert, uniquement avec les frameworks du système (ImageIO, PDFKit,
 /// CoreText, AppKit). Les originaux ne sont jamais modifiés : chaque résultat est un nouveau
-/// fichier dans `outputDirectory`, sans écraser un fichier existant.
+/// fichier, posé à côté de l'original ou dans `outputDirectory` s'il est
+/// fourni, sans jamais écraser un fichier existant.
 public struct FileConverter: Sendable {
-    public var outputDirectory: URL
+    public var outputDirectory: URL?
+    /// Original « logique » de chaque fichier traité : pour un document de la bibliothèque (copie
+    /// nommée par son empreinte), le résultat va à côté du fichier importé et en prend le nom.
+    public var besides: [URL: URL] = [:]
     public var imageQuality = 0.85
     public var compressionQuality = 0.6
     public var compressionMaxPixelSize = 2560
     public var renderDPI: CGFloat = 150
 
-    public init(outputDirectory: URL) {
+    public init(outputDirectory: URL? = nil) {
         self.outputDirectory = outputDirectory
     }
 
@@ -41,7 +45,9 @@ public struct FileConverter: Sendable {
     /// Exécute l'opération et renvoie les fichiers créés. Une compression qui ne gagne rien
     /// ne produit pas de fichier.
     public func perform(_ operation: FileAction.Operation, on urls: [URL]) async throws -> [URL] {
-        try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+        if let outputDirectory {
+            try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+        }
         // Fichiers déposés sur le camembert : sous sandbox, l'accès n'est valable qu'entre start/stop.
         let scoped = urls.filter { $0.startAccessingSecurityScopedResource() }
         defer { scoped.forEach { $0.stopAccessingSecurityScopedResource() } }
@@ -162,7 +168,7 @@ public struct FileConverter: Sendable {
 
     /// PDF et images assemblés dans l'ordre, une page par image.
     func mergeIntoPDF(_ urls: [URL]) throws -> URL {
-        guard let first = urls.first else { throw ConversionError.unreadable(outputDirectory) }
+        guard let first = urls.first else { throw ConversionError.writeFailed(outputDirectory ?? URL(fileURLWithPath: "/")) }
         let merged = PDFDocument()
         for url in urls {
             for page in try Self.pages(of: url) {
@@ -246,14 +252,16 @@ public struct FileConverter: Sendable {
 
     // MARK: Outils
 
-    /// `nom.ext`, puis `nom 2.ext`, `nom 3.ext`… : on n'écrase jamais rien.
+    /// `nom.ext`, puis `nom 2.ext`, `nom 3.ext`… à côté de l'original : on n'écrase jamais rien.
     func uniqueOutputURL(for source: URL, suffix: String = "", type: UTType) -> URL {
-        let base = source.deletingPathExtension().lastPathComponent + suffix
+        let original = besides[source] ?? source
+        let folder = outputDirectory ?? original.deletingLastPathComponent()
+        let base = original.deletingPathExtension().lastPathComponent + suffix
         let ext = type.preferredFilenameExtension ?? "bin"
-        var candidate = outputDirectory.appendingPathComponent(base).appendingPathExtension(ext)
+        var candidate = folder.appendingPathComponent(base).appendingPathExtension(ext)
         var index = 2
         while FileManager.default.fileExists(atPath: candidate.path) {
-            candidate = outputDirectory.appendingPathComponent("\(base) \(index)").appendingPathExtension(ext)
+            candidate = folder.appendingPathComponent("\(base) \(index)").appendingPathExtension(ext)
             index += 1
         }
         return candidate

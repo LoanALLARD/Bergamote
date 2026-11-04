@@ -5,13 +5,11 @@
 	<!-- Sandbox sans aucun droit réseau : la promesse « hors ligne » est garantie par le système. -->
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
-	<!-- Lecture des fichiers et dossiers que l'utilisateur dépose ou choisit. -->
-	<key>com.apple.security.files.user-selected.read-only</key>
+	<!-- Fichiers et dossiers que l'utilisateur dépose ou choisit, en écriture : les résultats du
+	     camembert sont créés à côté des originaux (dossier autorisé une fois). -->
+	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
-	<!-- Résultats du camembert : Téléchargements › Bergamote. -->
-	<key>com.apple.security.files.downloads.read-write</key>
-	<true/>
-	<!-- Pour mémoriser l'accès aux dossiers surveillés (security-scoped bookmarks). -->
+	<!-- Pour mémoriser ces autorisations de dossier (security-scoped bookmarks). -->
 	<key>com.apple.security.files.bookmarks.app-scope</key>
 	<true/>
 </dict>

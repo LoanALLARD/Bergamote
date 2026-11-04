@@ -2,10 +2,11 @@ import BergamoteKit
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(AppModel.self) private var model
     @AppStorage(RadialMenuController.enabledKey) private var isEnabled = true
     @AppStorage(RadialMenuController.conversionModifierKey) private var conversionModifier = WheelModifier.shift.rawValue
     @AppStorage(RadialMenuController.toolsModifierKey) private var toolsModifier = WheelModifier.command.rawValue
-    @AppStorage(RadialMenuController.revealResultsKey) private var revealResults = true
+    @AppStorage(RadialMenuController.soundKey) private var playsSound = true
 
     private let choices: [WheelModifier] = [.shift, .control, .option, .command]
 
@@ -23,16 +24,42 @@ struct SettingsView: View {
                     Text("Les deux camemberts utilisent la même touche : seul celui de conversion s'ouvrira.")
                         .font(.callout).foregroundStyle(.orange)
                 }
+                HStack {
+                    Toggle("Clic au passage d'une part", isOn: $playsSound)
+                    Spacer()
+                    Button("Écouter") {
+                        WheelSound.tick(force: true)
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(140))
+                            WheelSound.tick(force: true)
+                        }
+                    }
+                }
             } footer: {
-                Text("Glissez des fichiers depuis le Finder, puis tapez la touche choisie : le camembert s'ouvre sous le curseur. Lâchez les fichiers sur une part.")
+                Text("Glissez des fichiers depuis le Finder, puis tapez la touche choisie (ou maintenez-la avant de glisser) : le camembert s'ouvre sous le curseur. Lâchez les fichiers sur une part.")
             }
+
             Section {
-                Toggle("Afficher le résultat dans le Finder", isOn: $revealResults)
+                ForEach(model.folderAccess.grants, id: \.self) { folder in
+                    HStack {
+                        Label(folder.path(percentEncoded: false), systemImage: "folder")
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                        Button("Retirer") { model.folderAccess.remove(folder) }
+                    }
+                }
+                if FolderAccessStore.isSandboxed {
+                    Button("Autoriser le dossier personnel…") {
+                        _ = model.folderAccess.requestAccess(covering: [FolderAccessStore.homeFolder])
+                    }
+                }
+            } header: {
+                Text("Enregistrement à côté des originaux")
             } footer: {
-                Text("Les fichiers créés sont rangés dans Téléchargements › Bergamote. Les originaux ne sont jamais modifiés.")
+                Text("Les résultats sont créés dans le même dossier que le fichier d'origine, qui n'est jamais modifié. macOS demande d'autoriser une fois votre dossier personnel : tous les dossiers qu'il contient sont inclus.")
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
+        .frame(width: 480)
     }
 }

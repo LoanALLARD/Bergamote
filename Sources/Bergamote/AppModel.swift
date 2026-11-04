@@ -40,6 +40,8 @@ final class AppModel {
 
     /// Le camembert (menu circulaire) : créé avec le moteur, surveillance lancée par l'app.
     @ObservationIgnored private(set) var radialMenu: RadialMenuController?
+    /// Dossiers où le camembert peut écrire ses résultats (à côté des originaux).
+    let folderAccess = FolderAccessStore()
     @ObservationIgnored private var isStarting = false
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var searchTask: Task<Void, Never>?
@@ -80,7 +82,7 @@ final class AppModel {
     /// Branche un moteur déjà démarré (utilisé aussi par les tests de rendu).
     func attach(_ engine: BergamoteEngine) {
         self.engine = engine
-        radialMenu = RadialMenuController(engine: engine)
+        radialMenu = RadialMenuController(engine: engine, folderAccess: folderAccess)
         observe(engine)
         if !pendingImports.isEmpty {
             let urls = pendingImports
@@ -184,7 +186,10 @@ final class AppModel {
     /// Ouvre le camembert sous le curseur pour un document de la bibliothèque.
     func showWheel(_ kind: WheelKind, for document: Document) {
         guard let url = fileURL(of: document) else { return }
-        radialMenu?.present(kind, for: [url])
+        // Le fichier de la bibliothèque est une copie nommée par son empreinte : le résultat va à
+        // côté du fichier importé, sous son nom.
+        let original = document.originalPath.map { URL(fileURLWithPath: $0) }
+        radialMenu?.present(kind, for: [url], besides: original.map { [$0] })
     }
 
     func label(forDocType id: String?) -> String? {

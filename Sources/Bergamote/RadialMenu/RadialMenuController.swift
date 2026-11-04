@@ -20,11 +20,12 @@ final class RadialMenuController {
     static let enabledKey = "wheel.enabled"
     static let conversionModifierKey = "wheel.conversion.modifier"
     static let toolsModifierKey = "wheel.tools.modifier"
-    static let revealResultsKey = "wheel.revealResults"
+    static let soundKey = "wheel.sound"
     static let debugKey = "wheel.debug"
 
     let model = RadialMenuModel()
     private let engine: BergamoteEngine
+    private let folderAccess: FolderAccessStore
     private var detector = WheelTriggerDetector()
     private var panel: NSPanel?
     private var monitors: [Any] = []
@@ -32,9 +33,12 @@ final class RadialMenuController {
     private var pollTimer: Timer?
     private var activity: NSObjectProtocol?
     private var trace = Trace()
+    /// Originaux « logiques » des fichiers ouverts depuis la bibliothèque (voir `FileConverter.besides`).
+    private var originals: [URL]?
 
-    init(engine: BergamoteEngine) {
+    init(engine: BergamoteEngine, folderAccess: FolderAccessStore) {
         self.engine = engine
+        self.folderAccess = folderAccess
     }
 
     // MARK: Surveillance du geste
@@ -138,15 +142,18 @@ final class RadialMenuController {
             hidePanel()
             return
         }
+        originals = nil
         model.configure(kind: kind, mode: .drop, files: urls, actions: actions)
         showPanel(at: NSEvent.mouseLocation)
     }
 
     /// Ouvre le camembert sur des fichiers déjà accessibles (documents de la bibliothèque).
-    func present(_ kind: WheelKind, for urls: [URL], at location: NSPoint = NSEvent.mouseLocation) {
+    /// `originals` : fichiers importés dont ce sont les copies ; les résultats iront à côté d'eux.
+    func present(_ kind: WheelKind, for urls: [URL], besides originals: [URL]? = nil, at location: NSPoint = NSEvent.mouseLocation) {
         let types = urls.map { DocumentLibrary.contentType(of: $0) ?? .data }
         let actions = FileActionCatalog.actions(for: kind, inputs: types)
         guard !actions.isEmpty else { return }
+        self.originals = originals
         model.configure(kind: kind, mode: .click, files: urls, actions: actions)
         showPanel(at: location)
         panel?.makeKey()
@@ -236,20 +243,46 @@ final class RadialMenuController {
             }
             return
         }
+
+        // Le résultat va à côté de l'original : il faut le droit d'écrire dans son dossier.
+        let originals = self.originals
+        if action.operation != .index {
+            let folders = Set((originals ?? urls).map { $0.deletingLastPathComponent() })
+            if let missing = folders.first(where: { !FileManager.default.fileExists(atPath: $0.path) }) {
+                model.status = .failed("Dossier d'origine introuvable : \(missing.lastPathComponent)")
+                Task {
+                    try? await Task.sleep(for: .seconds(1.6))
+                    hidePanel()
+                }
+                return
+            }
+            if !folderAccess.covers(folders) {
+                // Première fois : le camembert s'efface le temps de la demande d'autorisation.
+                let center = panel.map { NSPoint(x: $0.frame.midX, y: $0.frame.midY) } ?? NSEvent.mouseLocation
+                panel?.orderOut(nil)
+                guard folderAccess.requestAccess(covering: folders) else {
+                    Logger.wheel.notice("Camembert : accès au dossier refusé, rien n'a été enregistré")
+                    NSSound.beep()
+                    hidePanel()
+                    return
+                }
+                showPanel(at: center)
+            }
+        }
+
         model.status = .working(action.title)
         let engine = engine
+        let scopes = folderAccess.startAccessing()
         Task {
+            defer { scopes.forEach { $0.stopAccessingSecurityScopedResource() } }
             do {
-                let outcome = try await engine.perform(action, on: urls)
+                // Pas d'ouverture du Finder : le fichier apparaît simplement à côté de l'original.
+                let outcome = try await engine.perform(action, on: urls, besides: originals)
                 model.status = .done(outcome.message)
-                let reveal = UserDefaults.standard.object(forKey: Self.revealResultsKey) as? Bool ?? true
-                if reveal, !outcome.produced.isEmpty {
-                    NSWorkspace.shared.activateFileViewerSelecting(outcome.produced)
-                }
             } catch {
                 model.status = .failed(error.localizedDescription)
             }
-            try? await Task.sleep(for: .seconds(1.4))
+            try? await Task.sleep(for: .seconds(1.2))
             hidePanel()
         }
     }

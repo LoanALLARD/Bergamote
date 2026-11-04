@@ -81,7 +81,7 @@ struct SnapshotTests {
         try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "8-camembert-outils", borderless: true)
 
         tools.highlighted = nil
-        tools.status = .done("4 fichier(s) dans Téléchargements › Bergamote")
+        tools.status = .done("4 fichiers créés à côté des originaux")
         try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "9-camembert-termine", borderless: true)
 
         // La part touchée par un point correspond bien à celle dessinée.
