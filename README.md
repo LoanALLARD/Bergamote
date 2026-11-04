@@ -12,6 +12,12 @@
 
 <p align="center"><b>Drag a file. Tap ⇧. Drop it on a slice.</b><br>A radial file converter that lives in your macOS menu bar.</p>
 
+<p align="center">
+  <a href="https://loanallard.github.io/Bergamote/">Website</a> ·
+  <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">Download</a> ·
+  <a href="#download-and-install">Install</a>
+</p>
+
 ---
 
 You have a scan to send as a PDF, an iPhone photo that has to be a JPEG, a contract whose author
@@ -132,6 +138,9 @@ BERGAMOTE_SNAPSHOT_DIR=build/snapshots swift test     # also renders the wheels 
 swift scripts/make-samples.swift SampleDocs           # fictitious PDFs, scan, image, .docx and .txt to try
 scripts/package-release.sh                            # universal .zip for GitHub Releases
 ```
+
+The website is a single static page in [`docs/`](docs/), published with GitHub Pages from the
+`main` branch. Preview it locally with `python3 -m http.server --directory docs`.
 
 To debug the gesture, launch with `open build/Bergamote.app --args -wheel.debug YES` and follow
 `/usr/bin/log stream --predicate 'subsystem == "com.example.bergamote"'`. With

@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bergamote — a radial file converter for your Mac</title>
+  <meta name="description" content="Drag a file, tap ⇧, drop it on a slice. Bergamote is a private, offline file converter that lives in the macOS menu bar.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="Bergamote — a radial file converter for your Mac">
+  <meta property="og:description" content="Drag a file, tap ⇧, drop it on a slice. Convert, compress, anonymize and OCR files without leaving Finder.">
+  <meta property="og:image" content="https://loanallard.github.io/Bergamote/assets/wheel-convert.png">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #f8f8f3;
+      --surface: #ffffff;
+      --surface-2: #f0f1ea;
+      --text: #1b1c1e;
+      --muted: #5d6067;
+      --border: rgba(20, 22, 26, 0.09);
+      --accent: #2f6fd6;
+      --accent-ink: #ffffff;
+      --citrus: #b3c02c;
+      --citrus-soft: rgba(179, 192, 44, 0.16);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.07);
+      --radius: 16px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e0f11;
+        --surface: #16181b;
+        --surface-2: #1d2024;
+        --text: #ececee;
+        --muted: #a1a5ad;
+        --border: rgba(255, 255, 255, 0.08);
+        --accent: #4d8bf0;
+        --citrus: #c9d64a;
+        --citrus-soft: rgba(201, 214, 74, 0.13);
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.6 var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; height: auto; display: block; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 88px 0; }
+    section + section { border-top: 1px solid var(--border); }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+    h2 { font-size: clamp(28px, 4vw, 40px); }
+    h3 { font-size: 19px; letter-spacing: -0.01em; }
+    p { margin: 0; }
+    .eyebrow { color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+    .lead { color: var(--muted); font-size: 19px; max-width: 640px; margin-top: 16px; }
+    kbd {
+      font: 600 0.9em var(--font);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.9em; height: 1.75em; padding: 0 0.45em;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 0 var(--border);
+    }
+
+    /* En-tête */
+    header { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--border); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; font-size: 18px; }
+    .brand:hover { text-decoration: none; }
+    .brand img { width: 26px; height: 26px; }
+    .nav-links { display: flex; gap: 24px; font-size: 15px; }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* Boutons */
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .button {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 13px 22px; border-radius: 12px;
+      font-weight: 600; font-size: 16px;
+      border: 1px solid var(--border);
+      color: var(--text); background: var(--surface);
+    }
+    .button:hover { text-decoration: none; filter: brightness(1.04); }
+    .button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .button svg { width: 18px; height: 18px; }
+    .fineprint { color: var(--muted); font-size: 14px; margin-top: 14px; }
+
+    /* Accroche */
+    .hero { padding: 72px 0 96px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    .hero h1 { font-size: clamp(40px, 6.2vw, 68px); letter-spacing: -0.035em; }
+    .hero h1 .hero-key {
+      font-size: 0.72em; height: 1.18em; min-width: 1.3em; padding: 0 0.22em;
+      vertical-align: 0.1em; border-radius: 0.22em;
+      color: var(--accent); box-shadow: 0 0.06em 0 var(--border), var(--shadow);
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .badge { font-size: 13px; font-weight: 600; color: var(--muted); padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
+
+    /* Démonstration animée du geste */
+    .stage {
+      position: relative; aspect-ratio: 1 / 0.92;
+      border-radius: 22px; overflow: hidden;
+      background:
+        radial-gradient(circle at 70% 20%, var(--citrus-soft), transparent 55%),
+        linear-gradient(160deg, var(--surface), var(--surface-2));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .stage .grid-files { position: absolute; inset: 28px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: start; gap: 18px; opacity: 0.55; }
+    .stage .doc { aspect-ratio: 0.78; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
+    .chip {
+      position: absolute; display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+      white-space: nowrap;
+    }
+    .chip .thumb { width: 22px; height: 26px; border-radius: 4px; background: linear-gradient(160deg, #f2a65a, #d9574b); }
+    .chip.result .thumb { background: linear-gradient(160deg, #6fb3ff, #2f6fd6); }
+    .chip.drag { left: 8%; top: 72%; animation: drag 7s infinite ease-in-out; }
+    .chip.result { left: 8%; top: 72%; opacity: 0; animation: result 7s infinite ease-out; }
+    .stage .key { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); font-size: 22px; padding: 0 12px; height: 46px; min-width: 64px; animation: key 7s infinite; }
+    .stage .wheel { position: absolute; left: 50%; top: 46%; width: 66%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; animation: wheel 7s infinite; filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.25)); }
+    /* Le fichier part du coin, ⇧ ouvre le camembert, puis il est déposé sur la part HEIC
+       (celle qui est mise en évidence dans l'image). */
+    @keyframes drag {
+      0%, 6% { left: 8%; top: 72%; opacity: 1; transform: scale(1); }
+      24%, 36% { left: 36%; top: 42%; opacity: 1; transform: scale(1); }
+      48%, 58% { left: 55%; top: 25%; opacity: 1; transform: scale(1); }
+      64%, 100% { left: 55%; top: 25%; opacity: 0; transform: scale(0.6); }
+    }
+    @keyframes key {
+      0%, 26% { transform: translateX(-50%) translateY(0); box-shadow: 0 3px 0 var(--border); opacity: 0.55; }
+      30%, 34% { transform: translateX(-50%) translateY(3px); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); opacity: 1; }
+      40%, 100% { transform: translateX(-50%) translateY(0); box-shadow: 0 3px 0 var(--border); opacity: 0.55; }
+    }
+    @keyframes wheel {
+      0%, 30% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+      36%, 62% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      68%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+    }
+    @keyframes result {
+      0%, 68% { opacity: 0; transform: translateY(10px); }
+      74%, 94% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .chip.drag, .chip.result, .stage .key { animation: none; }
+      .chip.drag { display: none; }
+      .stage .wheel { animation: none; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Étapes */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+    .step { padding: 26px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+    .step .num { font: 700 13px var(--mono); color: var(--accent); }
+    .step h3 { margin: 10px 0 8px; display: flex; align-items: center; gap: 10px; }
+    .step p { color: var(--muted); font-size: 16px; }
+
+    /* Fonctionnalités */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+    .feature { padding: 24px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+    .feature .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; background: var(--citrus-soft); margin-bottom: 14px; }
+    .feature p { color: var(--muted); font-size: 16px; margin-top: 6px; }
+
+    /* Les deux camemberts */
+    .wheels { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 48px; }
+    .wheel-card { padding: 28px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); text-align: center; }
+    .wheel-card img { width: min(300px, 100%); margin: 0 auto 18px; }
+    .wheel-card h3 { display: flex; justify-content: center; align-items: center; gap: 10px; }
+    .wheel-card p { color: var(--muted); font-size: 16px; margin-top: 8px; }
+    .slices { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; }
+    .slices span { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+
+    /* Confidentialité */
+    .privacy { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; }
+    .checklist li { display: flex; gap: 12px; color: var(--muted); }
+    .checklist li::before { content: "✓"; flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--accent-ink); background: var(--accent); }
+    .checklist strong { color: var(--text); }
+    .panel-shot { border-radius: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); width: min(340px, 100%); margin: 0 auto; }
+
+    /* Installation */
+    .install { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 48px; }
+    .card { padding: 28px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+    .card ol { padding-left: 20px; margin: 16px 0 0; color: var(--muted); display: grid; gap: 10px; }
+    .card ol strong { color: var(--text); }
+    .note { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 15px; }
+    .code { position: relative; margin-top: 16px; }
+    pre { margin: 0; padding: 44px 20px 18px; border-radius: 12px; background: #15171a; color: #e7e9ec; font: 14px/1.7 var(--mono); overflow-x: auto; }
+    pre .comment { color: #7f8792; }
+    .copy { position: absolute; top: 10px; right: 10px; font: 600 12px var(--font); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.06); color: #e7e9ec; cursor: pointer; }
+
+    /* Questions */
+    .faq { margin-top: 40px; display: grid; gap: 12px; max-width: 780px; }
+    details { padding: 18px 22px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+    summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--muted); margin-top: 10px; }
+
+    /* Pied de page */
+    footer { padding: 40px 0 56px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+    .footer-row { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+
+    /* minmax(0, …) : sans cela, la longue ligne du bloc de code élargit sa colonne au-delà de l'écran. */
+    .card, .step, .feature, .wheel-card { min-width: 0; }
+    @media (max-width: 880px) {
+      section { padding: 64px 0; }
+      .hero { padding: 40px 0 64px; }
+      .hero-grid, .privacy, .install, .wheels { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+      .steps, .features { grid-template-columns: minmax(0, 1fr); }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 480px) {
+      .wrap { padding: 0 16px; }
+      .button { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top"><img src="favicon.svg" alt="">Bergamote</a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/LoanALLARD/Bergamote">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">For macOS · Menu bar app</p>
+          <h1>Drag a file.<br>Tap <kbd class="hero-key">⇧</kbd>.<br>Drop it on a slice.</h1>
+          <p class="lead">Bergamote is a radial file converter that lives in your menu bar. Convert, compress, anonymize or OCR any file without leaving Finder, and get the result right next to the original.</p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/LoanALLARD/Bergamote/releases/latest">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
+              Download for Mac
+            </a>
+            <a class="button" href="https://github.com/LoanALLARD/Bergamote">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="fineprint">Free · macOS 14 Sonoma or later · Apple silicon and Intel</p>
+          <div class="badges" aria-label="Highlights">
+            <span class="badge">No network access</span>
+            <span class="badge">App Sandbox</span>
+            <span class="badge">On-device OCR</span>
+            <span class="badge">824 KB</span>
+          </div>
+        </div>
+
+        <div class="stage" role="img" aria-label="A file is dragged in Finder, the Shift key is tapped, the conversion wheel opens and the converted file appears next to the original.">
+          <div class="grid-files" aria-hidden="true">
+            <div class="doc"></div><div class="doc"></div><div class="doc"></div><div class="doc"></div>
+            <div class="doc"></div><div class="doc"></div><div class="doc"></div><div class="doc"></div>
+          </div>
+          <img class="wheel" src="assets/wheel-convert.png" alt="" width="680" height="680">
+          <div class="chip drag" aria-hidden="true"><span class="thumb"></span>photo.png</div>
+          <div class="chip result" aria-hidden="true"><span class="thumb"></span>photo.heic ✓</div>
+          <kbd class="key" aria-hidden="true">⇧</kbd>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="wrap">
+        <p class="eyebrow">How it works</p>
+        <h2>One gesture, wherever you are.</h2>
+        <p class="lead">No window to open, no menu to dig through. The wheel comes to your cursor.</p>
+        <div class="steps">
+          <div class="step">
+            <span class="num">01</span>
+            <h3>Drag</h3>
+            <p>Start dragging one or more files from Finder, the desktop or any app, and keep the mouse button down.</p>
+          </div>
+          <div class="step">
+            <span class="num">02</span>
+            <h3>Tap <kbd>⇧</kbd> or <kbd>⌘</kbd></h3>
+            <p>Shift opens the conversion wheel, Command the tools wheel. Holding the key before you drag works too. Both keys can be changed.</p>
+          </div>
+          <div class="step">
+            <span class="num">03</span>
+            <h3>Drop</h3>
+            <p>Release the files on a slice. The result appears next to the original, which is never modified or overwritten.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <p class="eyebrow">Features</p>
+        <h2>Everything you reach for, in one wheel.</h2>
+        <div class="features">
+          <div class="feature">
+            <div class="icon" aria-hidden="true">🔄</div>
+            <h3>Convert</h3>
+            <p>Images to PNG, JPEG, HEIC, AVIF, TIFF, GIF, BMP or PDF. PDF pages to images. Word, RTF and text to PDF and back.</p>
+          </div>
+          <div class="feature">
+            <div class="icon" aria-hidden="true">🗜</div>
+            <h3>Compress</h3>
+            <p>Photos resized and re-encoded, PDF images optimized. If there is nothing to gain, nothing is written.</p>
+          </div>
+          <div class="feature">
+            <div class="icon" aria-hidden="true">🕶</div>
+            <h3>Anonymize</h3>
+            <p>Remove GPS location, camera data and dates from photos, author and title from PDFs, keeping photos the right way up.</p>
+          </div>
+          <div class="feature">
+            <div class="icon" aria-hidden="true">🔎</div>
+            <h3>Make searchable</h3>
+            <p>Add an invisible OCR text layer to scanned PDFs and images, so you can select, copy and search their text anywhere.</p>
+          </div>
+          <div class="feature">
+            <div class="icon" aria-hidden="true">📄</div>
+            <h3>Merge and extract</h3>
+            <p>Combine images and PDFs into a single PDF, or pull the text out of any document into a plain text file.</p>
+          </div>
+          <div class="feature">
+            <div class="icon" aria-hidden="true">🪶</div>
+            <h3>Stays out of the way</h3>
+            <p>No window and no Dock icon: a pie in the menu bar, and a soft click as you move across the slices.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Two wheels</p>
+        <h2>The slices adapt to your files.</h2>
+        <p class="lead">Drag photos and you get image formats; drag PDFs and you get pages and text. A format your Mac cannot write is never offered.</p>
+        <div class="wheels">
+          <div class="wheel-card">
+            <img src="assets/wheel-convert.png" alt="The conversion wheel for three PNG files" width="680" height="680" loading="lazy">
+            <h3><kbd>⇧</kbd> Convert</h3>
+            <p>For images, PDFs and text documents.</p>
+            <div class="slices"><span>PNG</span><span>JPEG</span><span>HEIC</span><span>AVIF</span><span>TIFF</span><span>PDF</span><span>DOCX</span><span>TXT</span></div>
+          </div>
+          <div class="wheel-card">
+            <img src="assets/wheel-tools.png" alt="The tools wheel for four PDF files" width="680" height="680" loading="lazy">
+            <h3><kbd>⌘</kbd> Tools</h3>
+            <p>For images and PDFs.</p>
+            <div class="slices"><span>Compress</span><span>Anonymize</span><span>Searchable</span><span>Merge</span><span>Text</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap privacy">
+        <div>
+          <p class="eyebrow">Privacy</p>
+          <h2>Your files never leave your Mac.</h2>
+          <p class="lead">Not as a promise, but as a guarantee enforced by macOS.</p>
+          <ul class="checklist">
+            <li><span><strong>No network entitlement.</strong> The App Sandbox blocks every connection, whatever the code does.</span></li>
+            <li><span><strong>On-device only.</strong> Conversions use Apple's own frameworks, and OCR runs with Vision on your Mac.</span></li>
+            <li><span><strong>Minimal access.</strong> Bergamote only sees the files you drop on it, plus one folder permission you can revoke in Settings.</span></li>
+            <li><span><strong>No account, no telemetry.</strong> Nothing to sign up for, nothing reported back.</span></li>
+          </ul>
+        </div>
+        <img class="panel-shot" src="assets/menu-bar-panel.png" alt="Bergamote's menu bar panel, with the gesture reminder and the last result" width="640" height="500" loading="lazy">
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="wrap">
+        <p class="eyebrow">Install</p>
+        <h2>Ready in a minute.</h2>
+        <div class="install">
+          <div class="card">
+            <h3>Download a release</h3>
+            <ol>
+              <li>Download the latest <strong>Bergamote-x.y.z.zip</strong> from <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">GitHub Releases</a>.</li>
+              <li>Unzip it and move <strong>Bergamote.app</strong> to <strong>Applications</strong>.</li>
+              <li>Open it. A pie icon appears in the menu bar.</li>
+              <li>The first time a result is saved, allow your <strong>home folder</strong> once: every folder inside it is covered.</li>
+            </ol>
+            <p class="note">Releases are not notarized yet. If macOS refuses to open the app the first time, right-click it and choose <strong>Open</strong>, or click <strong>Open Anyway</strong> in System Settings › Privacy &amp; Security.</p>
+          </div>
+          <div class="card">
+            <h3>Build from source</h3>
+            <p class="fineprint" style="margin-top:8px">Requires Xcode 16 or later.</p>
+            <div class="code">
+              <button class="copy" type="button" data-copy="git clone https://github.com/LoanALLARD/Bergamote.git&#10;cd Bergamote&#10;scripts/make-app.sh&#10;open build/Bergamote.app">Copy</button>
+<pre><code>git clone https://github.com/LoanALLARD/Bergamote.git
+cd Bergamote
+scripts/make-app.sh      <span class="comment"># build/Bergamote.app</span>
+open build/Bergamote.app</code></pre>
+            </div>
+            <p class="note">To start Bergamote with your Mac, add it in System Settings › General › Login Items.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Questions</p>
+        <h2>Good to know.</h2>
+        <div class="faq">
+          <details>
+            <summary>Is Bergamote free?</summary>
+            <p>Yes. It is free to download and use, and its source code is on GitHub.</p>
+          </details>
+          <details>
+            <summary>Why does macOS ask me to allow my home folder?</summary>
+            <p>Sandboxed apps can only write where you allow them. Dropping a file gives access to that file alone, so saving the result next to it needs permission for its folder. Allowing your home folder once covers every folder inside it. You can revoke it at any time in Settings.</p>
+          </details>
+          <details>
+            <summary>Does it change my original files?</summary>
+            <p>Never. Every result is a new file in the same folder. If a file with that name already exists, Bergamote adds a number, such as <code>photo 2.jpeg</code>.</p>
+          </details>
+          <details>
+            <summary>Can I use other keys than ⇧ and ⌘?</summary>
+            <p>Yes. Each wheel can be bound to Shift, Control, Option or Command in Settings, where you can also turn off the click sound.</p>
+          </details>
+          <details>
+            <summary>Which languages does the interface support?</summary>
+            <p>The interface is in French for now. OCR recognizes French and English text.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-row">
+      <span>Bergamote · by Loan Allard</span>
+      <span><a href="https://github.com/LoanALLARD/Bergamote">Source code</a> · <a href="https://github.com/LoanALLARD/Bergamote/releases">Releases</a> · <a href="https://github.com/LoanALLARD/Bergamote/issues">Report an issue</a></span>
+    </div>
+  </footer>
+
+  <script>
+    // Boutons « Copy » des blocs de code.
+    document.querySelectorAll(".copy").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          button.textContent = "Copied";
+        } catch {
+          button.textContent = "Select and copy";
+        }
+        setTimeout(() => (button.textContent = "Copy"), 1600);
+      });
+    });
+  </script>
+</body>
+</html>
