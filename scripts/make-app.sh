@@ -3,12 +3,14 @@
 #
 #   scripts/make-app.sh                      # signature ad hoc (usage local)
 #   SIGN_IDENTITY="Developer ID Application: …" scripts/make-app.sh   # pour notariser ensuite
+#   SWIFT_BUILD_FLAGS="--arch arm64 --arch x86_64" scripts/make-app.sh   # binaire universel
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${CONFIG:-release}"
-swift build -c "$CONFIG" --product Bergamote
-BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
+read -r -a EXTRA_FLAGS <<< "${SWIFT_BUILD_FLAGS:-}"
+swift build -c "$CONFIG" --product Bergamote ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"}
+BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"})"
 
 APP="build/Bergamote.app"
 rm -rf "$APP"
