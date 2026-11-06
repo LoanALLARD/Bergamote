@@ -1,0 +1,20 @@
+[package]
+name = "bergamote-core"
+version = "0.1.0"
+edition = "2021"
+description = "Logique commune de Bergamote (macOS et Windows) : geste, camembert, catalogue d'actions, nommage, son."
+publish = false
+
+[lib]
+name = "bergamote_core"
+# staticlib : liée dans l'app Mac (XCFramework) ; cdylib : chargée par l'app Windows (P/Invoke).
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

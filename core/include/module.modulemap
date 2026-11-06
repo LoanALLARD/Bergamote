@@ -1,0 +1,4 @@
+module BergamoteCoreFFI {
+    header "bergamote_core.h"
+    export *
+}
