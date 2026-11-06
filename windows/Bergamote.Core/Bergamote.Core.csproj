@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Enveloppe .NET du cœur Rust (core/). La bibliothèque native est compilée par cargo avant la
+       compilation C#, puis copiée à côté des assemblies : bergamote_core.dll sur Windows,
+       libbergamote_core.dylib sur Mac (pour lancer les tests sur un Mac). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Bergamote.Core</RootNamespace>
+    <!-- -p:BuildCore=false quand la bibliothèque native est déjà compilée (CI). -->
+    <BuildCore Condition="'$(BuildCore)' == ''">true</BuildCore>
+    <CoreLibraryName Condition="$([MSBuild]::IsOSPlatform('Windows'))">bergamote_core.dll</CoreLibraryName>
+    <CoreLibraryName Condition="$([MSBuild]::IsOSPlatform('OSX'))">libbergamote_core.dylib</CoreLibraryName>
+    <CoreLibraryName Condition="'$(CoreLibraryName)' == ''">libbergamote_core.so</CoreLibraryName>
+    <CoreLibraryPath>$(CoreDirectory)target\release\$(CoreLibraryName)</CoreLibraryPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(CoreLibraryPath)" Link="$(CoreLibraryName)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="BuildRustCore" BeforeTargets="BeforeBuild" Condition="'$(BuildCore)' == 'true'">
+    <Exec Command="cargo build --release --manifest-path &quot;$(CoreDirectory)Cargo.toml&quot;" />
+  </Target>
+</Project>
