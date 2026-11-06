@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bergamote — a radial file converter for your Mac</title>
-  <meta name="description" content="Drag a file, tap ⇧, drop it on a slice. Bergamote is a private, offline file converter that lives in the macOS menu bar.">
+  <title>Bergamote — a radial file converter for Mac and Windows</title>
+  <meta name="description" content="Drag a file, tap ⇧, drop it on a slice. Bergamote is a private, offline file converter that lives in the macOS menu bar and the Windows notification area.">
   <meta name="color-scheme" content="light dark">
-  <meta property="og:title" content="Bergamote — a radial file converter for your Mac">
-  <meta property="og:description" content="Drag a file, tap ⇧, drop it on a slice. Convert, compress, anonymize and OCR files without leaving Finder.">
+  <meta property="og:title" content="Bergamote — a radial file converter for Mac and Windows">
+  <meta property="og:description" content="Drag a file, tap ⇧, drop it on a slice. Convert, compress, anonymize and OCR files without leaving Finder or Explorer.">
   <meta property="og:image" content="https://loanallard.github.io/Bergamote/assets/wheel-convert.png">
   <meta property="og:type" content="website">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -25,7 +25,7 @@
       --citrus-soft: rgba(179, 192, 44, 0.16);
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.07);
       --radius: 16px;
-      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
     @media (prefers-color-scheme: dark) {
@@ -175,6 +175,7 @@
     .feature { padding: 24px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
     .feature .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; background: var(--citrus-soft); margin-bottom: 14px; }
     .feature p { color: var(--muted); font-size: 16px; margin-top: 6px; }
+    .tag { display: inline-block; vertical-align: 0.15em; margin-left: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding: 2px 8px; border-radius: 999px; background: var(--surface-2); }
 
     /* Les deux camemberts */
     .wheels { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 48px; }
@@ -198,6 +199,10 @@
     .card { padding: 28px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
     .card ol { padding-left: 20px; margin: 16px 0 0; color: var(--muted); display: grid; gap: 10px; }
     .card ol strong { color: var(--text); }
+    .card.wide { grid-column: 1 / -1; }
+    .card[id] { scroll-margin-top: 76px; } /* sous l'en-tête collant */
+    .card h4 { margin: 22px 0 0; font-size: 15px; }
+    .card h4 + .code { margin-top: 10px; }
     .note { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 15px; }
     .code { position: relative; margin-top: 16px; }
     pre { margin: 0; padding: 44px 20px 18px; border-radius: 12px; background: #15171a; color: #e7e9ec; font: 14px/1.7 var(--mono); overflow-x: auto; }
@@ -250,29 +255,33 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <p class="eyebrow">For macOS · Menu bar app</p>
+          <p class="eyebrow">For macOS and Windows</p>
           <h1>Drag a file.<br>Tap <kbd class="hero-key">⇧</kbd>.<br>Drop it on a slice.</h1>
-          <p class="lead">Bergamote is a radial file converter that lives in your menu bar. Convert, compress, anonymize or OCR any file without leaving Finder, and get the result right next to the original.</p>
+          <p class="lead">Bergamote is a radial file converter that lives in your menu bar or notification area. Convert, compress, anonymize or OCR any file without leaving Finder or Explorer, and get the result right next to the original.</p>
           <div class="actions">
             <a class="button primary" href="https://github.com/LoanALLARD/Bergamote/releases/latest">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
               Download for Mac
+            </a>
+            <a class="button" href="#windows">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
+              Windows preview
             </a>
             <a class="button" href="https://github.com/LoanALLARD/Bergamote">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
               View on GitHub
             </a>
           </div>
-          <p class="fineprint">Free · macOS 14 Sonoma or later · Apple silicon and Intel</p>
+          <p class="fineprint">Free · macOS 14 Sonoma or later, Apple silicon and Intel · Windows 10 and 11, in preview</p>
           <div class="badges" aria-label="Highlights">
-            <span class="badge">No network access</span>
-            <span class="badge">App Sandbox</span>
+            <span class="badge">Works offline</span>
+            <span class="badge">No account</span>
             <span class="badge">On-device OCR</span>
-            <span class="badge">824 KB</span>
+            <span class="badge">Mac and Windows</span>
           </div>
         </div>
 
-        <div class="stage" role="img" aria-label="A file is dragged in Finder, the Shift key is tapped, the conversion wheel opens and the converted file appears next to the original.">
+        <div class="stage" role="img" aria-label="A file is dragged in a folder, the Shift key is tapped, the conversion wheel opens and the converted file appears next to the original.">
           <div class="grid-files" aria-hidden="true">
             <div class="doc"></div><div class="doc"></div><div class="doc"></div><div class="doc"></div>
             <div class="doc"></div><div class="doc"></div><div class="doc"></div><div class="doc"></div>
@@ -294,12 +303,12 @@
           <div class="step">
             <span class="num">01</span>
             <h3>Drag</h3>
-            <p>Start dragging one or more files from Finder, the desktop or any app, and keep the mouse button down.</p>
+            <p>Start dragging one or more files from Finder, Explorer, the desktop or any app, and keep the mouse button down.</p>
           </div>
           <div class="step">
             <span class="num">02</span>
             <h3>Tap <kbd>⇧</kbd> or <kbd>⌘</kbd></h3>
-            <p>Shift opens the conversion wheel, Command the tools wheel. Holding the key before you drag works too. Both keys can be changed.</p>
+            <p>Shift opens the conversion wheel, Command the tools wheel (Ctrl on Windows). Holding the key before you drag works too. Both keys can be changed.</p>
           </div>
           <div class="step">
             <span class="num">03</span>
@@ -323,7 +332,7 @@
           <div class="feature">
             <div class="icon" aria-hidden="true">🗜</div>
             <h3>Compress</h3>
-            <p>Photos resized and re-encoded, PDF images optimized. If there is nothing to gain, nothing is written.</p>
+            <p>Photos resized and re-encoded, and on the Mac, PDF images optimized. If there is nothing to gain, nothing is written.</p>
           </div>
           <div class="feature">
             <div class="icon" aria-hidden="true">🕶</div>
@@ -332,7 +341,7 @@
           </div>
           <div class="feature">
             <div class="icon" aria-hidden="true">🔎</div>
-            <h3>Make searchable</h3>
+            <h3>Make searchable <span class="tag">Mac</span></h3>
             <p>Add an invisible OCR text layer to scanned PDFs and images, so you can select, copy and search their text anywhere.</p>
           </div>
           <div class="feature">
@@ -343,7 +352,7 @@
           <div class="feature">
             <div class="icon" aria-hidden="true">🪶</div>
             <h3>Stays out of the way</h3>
-            <p>No window and no Dock icon: a pie in the menu bar, and a soft click as you move across the slices.</p>
+            <p>No window, no Dock or taskbar button: a pie in the menu bar or notification area, and a soft click as you move across the slices.</p>
           </div>
         </div>
       </div>
@@ -353,7 +362,7 @@
       <div class="wrap">
         <p class="eyebrow">Two wheels</p>
         <h2>The slices adapt to your files.</h2>
-        <p class="lead">Drag photos and you get image formats; drag PDFs and you get pages and text. A format your Mac cannot write is never offered.</p>
+        <p class="lead">Drag photos and you get image formats; drag PDFs and you get pages and text. A format your computer cannot write is never offered, and both apps share the same core, so they offer the same slices for the same files.</p>
         <div class="wheels">
           <div class="wheel-card">
             <img src="assets/wheel-convert.png" alt="The conversion wheel for three PNG files" width="680" height="680" loading="lazy">
@@ -363,7 +372,7 @@
           </div>
           <div class="wheel-card">
             <img src="assets/wheel-tools.png" alt="The tools wheel for four PDF files" width="680" height="680" loading="lazy">
-            <h3><kbd>⌘</kbd> Tools</h3>
+            <h3><kbd>⌘</kbd> <kbd>Ctrl</kbd> Tools</h3>
             <p>For images and PDFs.</p>
             <div class="slices"><span>Compress</span><span>Anonymize</span><span>Searchable</span><span>Merge</span><span>Text</span></div>
           </div>
@@ -375,12 +384,12 @@
       <div class="wrap privacy">
         <div>
           <p class="eyebrow">Privacy</p>
-          <h2>Your files never leave your Mac.</h2>
-          <p class="lead">Not as a promise, but as a guarantee enforced by macOS.</p>
+          <h2>Your files never leave your computer.</h2>
+          <p class="lead">On the Mac, not as a promise but as a guarantee enforced by macOS.</p>
           <ul class="checklist">
-            <li><span><strong>No network entitlement.</strong> The App Sandbox blocks every connection, whatever the code does.</span></li>
-            <li><span><strong>On-device only.</strong> Conversions use Apple's own frameworks, and OCR runs with Vision on your Mac.</span></li>
-            <li><span><strong>Minimal access.</strong> Bergamote only sees the files you drop on it, plus one folder permission you can revoke in Settings.</span></li>
+            <li><span><strong>No network access.</strong> On the Mac, the App Sandbox blocks every connection, whatever the code does. The Windows app makes none either.</span></li>
+            <li><span><strong>On-device only.</strong> Conversions and OCR use the system's own engines: Apple's frameworks and Vision on the Mac, Windows imaging, PDF and OCR on Windows.</span></li>
+            <li><span><strong>Minimal access.</strong> Bergamote only works on the files you drop on it. On the Mac, saving next to them takes one folder permission you can revoke in Settings.</span></li>
             <li><span><strong>No account, no telemetry.</strong> Nothing to sign up for, nothing reported back.</span></li>
           </ul>
         </div>
@@ -394,26 +403,44 @@
         <h2>Ready in a minute.</h2>
         <div class="install">
           <div class="card">
-            <h3>Download a release</h3>
+            <h3>Mac</h3>
             <ol>
               <li>Download the latest <strong>Bergamote-x.y.z.zip</strong> from <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">GitHub Releases</a>.</li>
               <li>Unzip it and move <strong>Bergamote.app</strong> to <strong>Applications</strong>.</li>
               <li>Open it. A pie icon appears in the menu bar.</li>
               <li>The first time a result is saved, allow your <strong>home folder</strong> once: every folder inside it is covered.</li>
             </ol>
-            <p class="note">Releases are not notarized yet. If macOS refuses to open the app the first time, right-click it and choose <strong>Open</strong>, or click <strong>Open Anyway</strong> in System Settings › Privacy &amp; Security.</p>
+            <p class="note">Releases are not notarized yet. If macOS refuses to open the app the first time, right-click it and choose <strong>Open</strong>, or click <strong>Open Anyway</strong> in System Settings › Privacy &amp; Security. To start Bergamote with your Mac, add it in General › Login Items.</p>
           </div>
-          <div class="card">
+          <div class="card" id="windows">
+            <h3>Windows <span class="tag">Preview</span></h3>
+            <ol>
+              <li>Open the latest <a href="https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml">CI run</a> of the <strong>main</strong> branch (downloads need a GitHub account).</li>
+              <li>Download the <strong>Bergamote-windows-x64</strong> artifact and unzip it.</li>
+              <li>Run <strong>Bergamote.exe</strong>. A pie icon appears in the notification area; nothing to install, no .NET needed.</li>
+              <li>Drag files from Explorer and tap <strong>Shift</strong> or <strong>Ctrl</strong>.</li>
+            </ol>
+            <p class="note">The executable is not signed yet: if SmartScreen stops it, click <strong>More info</strong>, then <strong>Run anyway</strong>. Starting with Windows can be turned on in Settings. Windows 10 (1809) or later, x64.</p>
+          </div>
+          <div class="card wide">
             <h3>Build from source</h3>
-            <p class="fineprint" style="margin-top:8px">Requires Xcode 16 or later.</p>
+            <p class="fineprint" style="margin-top:8px">Both apps need <a href="https://rustup.rs">Rust</a> for the shared core.</p>
+            <h4>Mac · Xcode 16 or later</h4>
             <div class="code">
-              <button class="copy" type="button" data-copy="git clone https://github.com/LoanALLARD/Bergamote.git&#10;cd Bergamote&#10;scripts/make-app.sh&#10;open build/Bergamote.app">Copy</button>
+              <button class="copy" type="button" data-copy="git clone https://github.com/LoanALLARD/Bergamote.git&#10;cd Bergamote&#10;rustup target add aarch64-apple-darwin x86_64-apple-darwin&#10;mac/scripts/make-app.sh&#10;open mac/build/Bergamote.app">Copy</button>
 <pre><code>git clone https://github.com/LoanALLARD/Bergamote.git
 cd Bergamote
-scripts/make-app.sh      <span class="comment"># build/Bergamote.app</span>
-open build/Bergamote.app</code></pre>
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+mac/scripts/make-app.sh      <span class="comment"># mac/build/Bergamote.app</span>
+open mac/build/Bergamote.app</code></pre>
             </div>
-            <p class="note">To start Bergamote with your Mac, add it in System Settings › General › Login Items.</p>
+            <h4>Windows · .NET 8 SDK</h4>
+            <div class="code">
+              <button class="copy" type="button" data-copy="git clone https://github.com/LoanALLARD/Bergamote.git&#10;cd Bergamote&#10;dotnet run --project windows/Bergamote.Windows">Copy</button>
+<pre><code>git clone https://github.com/LoanALLARD/Bergamote.git
+cd Bergamote
+dotnet run --project windows/Bergamote.Windows</code></pre>
+            </div>
           </div>
         </div>
       </div>
@@ -429,6 +456,10 @@ open build/Bergamote.app</code></pre>
             <p>Yes. It is free to download and use, and its source code is on GitHub.</p>
           </details>
           <details>
+            <summary>Does it work on Windows?</summary>
+            <p>Yes, in preview. The Windows app shares its core with the Mac app, so the gesture, the slices and the file names are the same. It converts images, renders PDF pages, compresses and anonymizes images, anonymizes and merges PDFs, and extracts text with Windows OCR. Searchable PDFs and PDF compression are Mac only for now.</p>
+          </details>
+          <details>
             <summary>Why does macOS ask me to allow my home folder?</summary>
             <p>Sandboxed apps can only write where you allow them. Dropping a file gives access to that file alone, so saving the result next to it needs permission for its folder. Allowing your home folder once covers every folder inside it. You can revoke it at any time in Settings.</p>
           </details>
@@ -437,12 +468,12 @@ open build/Bergamote.app</code></pre>
             <p>Never. Every result is a new file in the same folder. If a file with that name already exists, Bergamote adds a number, such as <code>photo 2.jpeg</code>.</p>
           </details>
           <details>
-            <summary>Can I use other keys than ⇧ and ⌘?</summary>
-            <p>Yes. Each wheel can be bound to Shift, Control, Option or Command in Settings, where you can also turn off the click sound.</p>
+            <summary>Can I use other keys?</summary>
+            <p>Yes. In Settings, each wheel can be bound to Shift, Control, Option or Command on the Mac, and to Shift, Ctrl or Alt on Windows. You can also turn off the click sound there.</p>
           </details>
           <details>
             <summary>Which languages does the interface support?</summary>
-            <p>The interface is in French for now. OCR recognizes French and English text.</p>
+            <p>The interface is in French for now. On the Mac, OCR recognizes French and English text; on Windows, it uses the languages installed on your PC.</p>
           </details>
         </div>
       </div>
