@@ -4,3 +4,7 @@ build/
 *.xcodeproj/xcuserdata/
 .DS_Store
 SampleDocs/
+core/target/
+mac/Frameworks/
+windows/**/bin/
+windows/**/obj/

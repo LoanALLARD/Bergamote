@@ -1,4 +1,5 @@
 import AppKit
+import BergamoteCoreFFI
 import CoreText
 import Foundation
 import ImageIO
@@ -64,11 +65,7 @@ public struct FileConverter: Sendable {
 
     /// Message affiché au centre du camembert une fois l'action terminée.
     public static func summary(ofCreated count: Int) -> String {
-        switch count {
-        case 0: "Rien à gagner : fichiers déjà optimisés"
-        case 1: "1 fichier créé à côté de l'original"
-        default: "\(count) fichiers créés à côté des originaux"
-        }
+        Core.take(bgm_created_summary(UInt32(clamping: count))) ?? ""
     }
 
     // MARK: Images
@@ -255,16 +252,9 @@ public struct FileConverter: Sendable {
 
     /// `nom.ext`, puis `nom 2.ext`, `nom 3.ext`… à côté de l'original : on n'écrase jamais rien.
     func uniqueOutputURL(for source: URL, suffix: String = "", type: UTType) -> URL {
-        let folder = outputDirectory ?? source.deletingLastPathComponent()
-        let base = source.deletingPathExtension().lastPathComponent + suffix
         let ext = type.preferredFilenameExtension ?? "bin"
-        var candidate = folder.appendingPathComponent(base).appendingPathExtension(ext)
-        var index = 2
-        while FileManager.default.fileExists(atPath: candidate.path) {
-            candidate = folder.appendingPathComponent("\(base) \(index)").appendingPathExtension(ext)
-            index += 1
-        }
-        return candidate
+        let path = Core.take(bgm_unique_output_path(source.path, suffix, ext, outputDirectory?.path))
+        return path.map { URL(fileURLWithPath: $0) } ?? source.deletingPathExtension().appendingPathExtension(ext)
     }
 
     func write(_ image: CGImage, to url: URL, type: UTType, quality: Double) throws {

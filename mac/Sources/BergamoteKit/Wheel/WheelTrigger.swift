@@ -1,7 +1,9 @@
+import BergamoteCoreFFI
 import CoreGraphics
 import Foundation
 
-/// Touches de modification, indépendantes d'AppKit pour que la logique reste testable.
+/// Touches de modification, indépendantes d'AppKit pour que la logique reste testable. Mêmes
+/// bits que dans le cœur partagé.
 public struct WheelModifier: OptionSet, Hashable, Sendable, Codable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
@@ -28,14 +30,22 @@ public enum WheelKind: String, Sendable, CaseIterable, Codable {
         case .tools: "Outils"
         }
     }
+
+    /// Code du cœur partagé : 1 conversion, 2 outils.
+    var coreCode: UInt8 { self == .conversion ? 1 : 2 }
+
+    init?(coreCode: Int) {
+        switch coreCode {
+        case 1: self = .conversion
+        case 2: self = .tools
+        default: return nil
+        }
+    }
 }
 
 /// Machine à états du geste du camembert : « glisser des fichiers, puis taper une touche de
-/// modification ». Une touche déjà maintenue quand le glisser commence ouvre aussi le camembert.
-///
-/// Elle ne reçoit que des échantillons (bouton de la souris, compteur du presse-papiers de
-/// glisser-déposer, touches enfoncées). La colle AppKit (moniteurs d'événements, minuterie) reste
-/// mince, et tout le comportement se teste sans écran.
+/// modification ». La logique vit dans le cœur partagé (`core/src/detector.rs`) ; ce type ne fait
+/// que lui transmettre les échantillons.
 public struct WheelTriggerDetector: Sendable {
     public struct Sample: Sendable {
         public var isMouseDown: Bool
@@ -56,72 +66,60 @@ public struct WheelTriggerDetector: Sendable {
         case hide
     }
 
-    public var bindings: [WheelModifier: WheelKind]
-    public private(set) var visible: WheelKind?
-    private var wasMouseDown = false
-    private var idleChangeCount: Int?
-    private var changeCountAtPress = 0
-    private var isDragging = false
-    private var previousModifiers: WheelModifier = []
+    /// Possède le détecteur du cœur et le libère avec lui.
+    private final class Handle: @unchecked Sendable {
+        let pointer = bgm_detector_new()
+        deinit { bgm_detector_free(pointer) }
+    }
+
+    private let handle = Handle()
+
+    public var bindings: [WheelModifier: WheelKind] {
+        didSet { applyBindings() }
+    }
+
+    public var visible: WheelKind? {
+        WheelKind(coreCode: Int(bgm_detector_visible(handle.pointer)))
+    }
 
     public init(bindings: [WheelModifier: WheelKind] = [.shift: .conversion, .command: .tools]) {
         self.bindings = bindings
+        applyBindings()
     }
 
     public mutating func update(_ sample: Sample) -> Decision {
-        defer {
-            previousModifiers = sample.modifiers
-            wasMouseDown = sample.isMouseDown
+        let code = bgm_detector_update(
+            handle.pointer, sample.isMouseDown, Int64(sample.dragPasteboardChangeCount), UInt32(sample.modifiers.rawValue))
+        switch code {
+        case 3: return .hide
+        default: return WheelKind(coreCode: Int(code)).map(Decision.show) ?? .none
         }
-        guard sample.isMouseDown else {
-            idleChangeCount = sample.dragPasteboardChangeCount
-            isDragging = false
-            if visible != nil {
-                visible = nil
-                return .hide
-            }
-            return .none
-        }
-        if !wasMouseDown {
-            // Référence prise bouton relâché : si l'échantillon d'appui arrive après le début du
-            // glisser (moniteur en retard), le changement du presse-papiers reste détecté.
-            changeCountAtPress = idleChangeCount ?? sample.dragPasteboardChangeCount
-            isDragging = false
-        }
-        let dragJustStarted = !isDragging && sample.dragPasteboardChangeCount != changeCountAtPress
-        if dragJustStarted {
-            isDragging = true
-        }
-        // Deux façons d'ouvrir : taper la combinaison pendant le glisser (elle devient exactement
-        // l'ensemble des touches enfoncées), ou la maintenir déjà quand le glisser commence.
-        guard isDragging, sample.modifiers != previousModifiers || dragJustStarted,
-              let kind = bindings[sample.modifiers], kind != visible
-        else { return .none }
-        visible = kind
-        return .show(kind)
     }
 
     /// À appeler quand le camembert se ferme de lui-même (dépôt effectué, Échap).
     public mutating func dismiss() {
-        visible = nil
+        bgm_detector_dismiss(handle.pointer)
+    }
+
+    private func applyBindings() {
+        bgm_detector_clear_bindings(handle.pointer)
+        for (modifiers, kind) in bindings {
+            bgm_detector_set_binding(handle.pointer, UInt32(modifiers.rawValue), kind.coreCode)
+        }
     }
 }
 
-/// Géométrie du camembert : la part 0 est centrée en haut, puis sens horaire.
+/// Géométrie du camembert : la part 0 est centrée en haut, puis sens horaire (cœur partagé).
 public enum WheelGeometry {
     /// Part sous `point`, exprimé par rapport au centre avec l'axe y vers le haut ;
     /// `nil` dans le trou central ou hors du disque.
     public static func slice(at point: CGPoint, count: Int, innerRadius: CGFloat, outerRadius: CGFloat) -> Int? {
-        let distance = hypot(point.x, point.y)
-        guard count > 0, distance >= innerRadius, distance <= outerRadius else { return nil }
-        var angle = atan2(point.x, point.y)  // 0 en haut, positif vers la droite
-        if angle < 0 { angle += 2 * .pi }
-        let width = 2 * .pi / CGFloat(count)
-        return Int((angle + width / 2) / width) % count
+        let index = bgm_slice_at(point.x, point.y, Int32(count), innerRadius, outerRadius)
+        return index >= 0 ? Int(index) : nil
     }
 
     /// Angle du milieu de la part, en radians depuis le haut, sens horaire.
     public static func centerAngle(of index: Int, count: Int) -> CGFloat {
-        CGFloat(index) * 2 * .pi / CGFloat(max(count, 1))
+        bgm_center_angle(Int32(index), Int32(count))
     }
 }

@@ -29,15 +29,6 @@ final class RadialMenuModel {
         status = .idle
     }
 
-    /// « 3 JPG · 39,7 Mo » au centre du camembert. La taille est omise si la
-    /// sandbox ne permet pas encore de lire les fichiers (avant le dépôt).
-    var summary: String {
-        guard !files.isEmpty else { return "" }
-        let extensions = Set(files.map { $0.pathExtension.uppercased() })
-        let noun = extensions.count == 1 && !extensions.first!.isEmpty ? extensions.first! : "fichier\(files.count > 1 ? "s" : "")"
-        let sizes = files.compactMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }
-        guard sizes.count == files.count else { return "\(files.count) \(noun)" }
-        let total = ByteCountFormatter.string(fromByteCount: Int64(sizes.reduce(0, +)), countStyle: .file)
-        return "\(files.count) \(noun) · \(total)"
-    }
+    /// « 3 JPG · 39,7 Mo » au centre du camembert (texte du cœur partagé).
+    var summary: String { FileSummary.describe(files) }
 }

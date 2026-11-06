@@ -7,6 +7,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Le cœur Rust partagé : recompilé s'il manque ou si ses sources ont changé.
+FRAMEWORK="Frameworks/BergamoteCoreFFI.xcframework"
+if [[ ! -d "$FRAMEWORK" || -n "$(find ../core/src ../core/include ../core/Cargo.toml -newer "$FRAMEWORK" -print -quit)" ]]; then
+  scripts/build-core.sh
+fi
+
 CONFIG="${CONFIG:-release}"
 read -r -a EXTRA_FLAGS <<< "${SWIFT_BUILD_FLAGS:-}"
 swift build -c "$CONFIG" --product Bergamote ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"}

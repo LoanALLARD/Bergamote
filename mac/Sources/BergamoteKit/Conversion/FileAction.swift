@@ -1,3 +1,4 @@
+import BergamoteCoreFFI
 import Foundation
 import UniformTypeIdentifiers
 
@@ -45,80 +46,107 @@ extension UTType {
 }
 
 /// Les parts proposées selon le camembert et les fichiers glissés (pour des JPEG : PNG,
-/// WEBP, HEIC…). Un format que macOS ne sait pas écrire n'apparaît pas.
+/// WEBP, HEIC…). Le choix des parts vit dans le cœur partagé (`core/src/catalog.rs`) ; ce type
+/// traduit les UTType en identifiants de format, puis la réponse en `FileAction`. Un format que
+/// macOS ne sait pas écrire n'apparaît pas.
 public enum FileActionCatalog {
     public static let maximumSlices = 8
 
+    /// Identifiants de format du cœur, dans l'ordre du camembert.
     static let imageFormats: [(String, UTType)] = [
-        ("PNG", .png), ("JPEG", .jpeg), ("HEIC", .heic), ("WEBP", .webP),
-        ("AVIF", .avif), ("TIFF", .tiff), ("GIF", .gif), ("BMP", .bmp),
+        ("png", .png), ("jpeg", .jpeg), ("heic", .heic), ("webp", .webP),
+        ("avif", .avif), ("tiff", .tiff), ("gif", .gif), ("bmp", .bmp),
     ]
+    static let textFormats: [(String, UTType)] = [("docx", .docx), ("rtf", .rtf), ("txt", .plainText)]
 
     public static func actions(
         for kind: WheelKind, inputs: [UTType],
         writableImageTypes: Set<UTType> = FileConverter.writableImageTypes
     ) -> [FileAction] {
-        let categories = Set(inputs.map(FileCategory.init))
-        guard !inputs.isEmpty, !categories.contains(.other) else { return [] }
-        let actions: [FileAction]
-        switch kind {
-        case .conversion: actions = conversions(inputs: inputs, categories: categories, writable: writableImageTypes)
-        case .tools: actions = tools(inputs: inputs, categories: categories)
-        }
-        return Array(actions.prefix(maximumSlices))
+        let request = Request(
+            kind: kind.coreCode, inputs: inputs.map(Input.init), common: false,
+            writable: writable(writableImageTypes))
+        return catalog(request)
     }
 
     /// Actions proposées quand le type des fichiers glissés n'est pas encore lisible.
     public static func commonActions(for kind: WheelKind, writableImageTypes: Set<UTType> = FileConverter.writableImageTypes) -> [FileAction] {
-        switch kind {
-        case .conversion:
-            let images = imageFormats.prefix(3).filter { writableImageTypes.contains($0.1) }
-                .map { FileAction(title: $0.0, systemImage: "photo", operation: .convertImages($0.1)) }
-            return [FileAction(title: "PDF", systemImage: "doc.richtext", operation: .mergeIntoPDF)] + images
-                + [FileAction(title: "TXT", systemImage: "text.alignleft", operation: .extractText)]
-        case .tools:
-            return tools(inputs: [.png, .pdf], categories: [.image, .pdf])
-        }
+        catalog(Request(kind: kind.coreCode, inputs: [], common: true, writable: writable(writableImageTypes)))
     }
 
-    private static func conversions(inputs: [UTType], categories: Set<FileCategory>, writable: Set<UTType>) -> [FileAction] {
-        let text = FileAction(title: "TXT", systemImage: "text.alignleft", operation: .extractText)
-        switch categories {
-        case [.image]:
-            // On ne propose pas le format d'origine quand tous les fichiers y sont déjà.
-            let images = imageFormats
-                .filter { format in writable.contains(format.1) && !inputs.allSatisfy { $0.conforms(to: format.1) } }
-                .map { FileAction(title: $0.0, systemImage: "photo", operation: .convertImages($0.1)) }
-            return Array(images.prefix(maximumSlices - 1))
-                + [FileAction(title: "PDF", systemImage: "doc.richtext", operation: .mergeIntoPDF)]
-        case [.pdf]:
-            let pages = imageFormats.prefix(3).filter { writable.contains($0.1) }
-                .map { FileAction(title: $0.0, systemImage: "photo.on.rectangle", operation: .renderPages($0.1)) }
-            return pages + [text]
-        case [.text]:
-            let formats: [(String, String, UTType)] = [("DOCX", "doc.text", .docx), ("RTF", "doc.plaintext", .rtf), ("TXT", "text.alignleft", .plainText)]
-            return [FileAction(title: "PDF", systemImage: "doc.richtext", operation: .textToPDF)]
-                + formats.filter { format in !inputs.allSatisfy { $0.conforms(to: format.2) } }
-                    .map { FileAction(title: $0.0, systemImage: $0.1, operation: .convertText($0.2)) }
-        case [.image, .pdf]:
-            return [FileAction(title: "PDF", systemImage: "doc.richtext", operation: .mergeIntoPDF), text]
-        default:
-            return [text]
-        }
-    }
+    // MARK: Échange avec le cœur
 
-    private static func tools(inputs: [UTType], categories: Set<FileCategory>) -> [FileAction] {
-        var actions: [FileAction] = []
-        if categories.isSubset(of: [.image, .pdf]) {
-            actions.append(FileAction(title: "Compresser", systemImage: "arrow.down.right.and.arrow.up.left", operation: .compress))
-            // Retire EXIF, GPS, auteur… : « Anonymiser » tient dans une part, « Sans métadonnées » non.
-            actions.append(FileAction(title: "Anonymiser", systemImage: "tag.slash", operation: .stripMetadata))
-            actions.append(FileAction(title: "Cherchable", systemImage: "text.viewfinder", operation: .makeSearchable))
-            if inputs.count > 1 {
-                actions.append(FileAction(title: "Fusionner", systemImage: "doc.on.doc", operation: .mergeIntoPDF))
+    struct Input: Encodable {
+        let category: String
+        let format: String
+
+        init(_ type: UTType) {
+            switch FileCategory(type) {
+            case .image: category = "image"
+            case .pdf: category = "pdf"
+            case .text: category = "text"
+            case .other: category = "other"
             }
+            format = (FileActionCatalog.imageFormats + FileActionCatalog.textFormats)
+                .first { type.conforms(to: $0.1) }?.0 ?? type.identifier
         }
-        actions.append(FileAction(title: "Texte", systemImage: "text.quote", operation: .extractText))
-        return actions
     }
+
+    struct Request: Encodable {
+        let kind: UInt8
+        let inputs: [Input]
+        let common: Bool
+        let writable: [String]
+    }
+
+    struct Response: Decodable {
+        let title: String
+        let icon: String
+        let operation: String
+        let format: String?
+    }
+
+    static func writable(_ types: Set<UTType>) -> [String] {
+        imageFormats.filter { types.contains($0.1) }.map(\.0)
+    }
+
+    static func catalog(_ request: Request) -> [FileAction] {
+        guard let json = Core.take(bgm_catalog(Core.json(request))),
+              let response = try? JSONDecoder().decode([Response].self, from: Data(json.utf8))
+        else { return [] }
+        return response.compactMap(action)
+    }
+
+    static func action(_ response: Response) -> FileAction? {
+        let format = response.format.flatMap { id in (imageFormats + textFormats).first { $0.0 == id }?.1 }
+        let operation: FileAction.Operation
+        switch (response.operation, format) {
+        case ("convert_images", let type?): operation = .convertImages(type)
+        case ("render_pages", let type?): operation = .renderPages(type)
+        case ("convert_text", let type?): operation = .convertText(type)
+        case ("text_to_pdf", _): operation = .textToPDF
+        case ("extract_text", _): operation = .extractText
+        case ("make_searchable", _): operation = .makeSearchable
+        case ("compress", _): operation = .compress
+        case ("strip_metadata", _): operation = .stripMetadata
+        case ("merge_pdf", _): operation = .mergeIntoPDF
+        default: return nil
+        }
+        return FileAction(title: response.title, systemImage: symbols[response.icon] ?? "doc", operation: operation)
+    }
+
+    /// Icônes abstraites du cœur → SF Symbols.
+    static let symbols: [String: String] = [
+        "photo": "photo",
+        "pages": "photo.on.rectangle",
+        "document": "doc.richtext",
+        "text": "text.alignleft",
+        "word": "doc.text",
+        "rich_text": "doc.plaintext",
+        "compress": "arrow.down.right.and.arrow.up.left",
+        "anonymize": "tag.slash",
+        "searchable": "text.viewfinder",
+        "merge": "doc.on.doc",
+        "extract": "text.quote",
+    ]
 }

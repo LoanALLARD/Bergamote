@@ -9,8 +9,10 @@ let package = Package(
         .library(name: "BergamoteKit", targets: ["BergamoteKit"]),
     ],
     targets: [
-        // Le cœur : geste du camembert, catalogue d'actions, conversions. Sans UI, donc testable.
-        .target(name: "BergamoteKit"),
+        // Le cœur Rust partagé avec l'app Windows (../core), compilé par scripts/build-core.sh.
+        .binaryTarget(name: "BergamoteCoreFFI", path: "Frameworks/BergamoteCoreFFI.xcframework"),
+        // Adaptation Swift du cœur, plus les conversions natives (ImageIO, PDFKit, Vision…).
+        .target(name: "BergamoteKit", dependencies: ["BergamoteCoreFFI"]),
         // L'app de barre des menus : surveillance du geste, panneau du camembert, réglages.
         .executableTarget(
             name: "Bergamote",
