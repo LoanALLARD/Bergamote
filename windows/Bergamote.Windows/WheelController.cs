@@ -43,7 +43,11 @@ internal sealed class WheelController : IDisposable
         ApplySettings();
     }
 
-    public void Start() => timer.Start();
+    public void Start()
+    {
+        timer.Start();
+        DebugLog.Write($"started; language {AppLanguage.Current}; core {CoreLibrary.Version}");
+    }
 
     private void ApplySettings()
     {
@@ -77,6 +81,7 @@ internal sealed class WheelController : IDisposable
 
     private void Present(WheelKind kind, Win32.POINT cursor)
     {
+        DebugLog.Write($"gesture: {kind} at ({cursor.X}, {cursor.Y})");
         if (window.State is WheelState.Working or WheelState.Done or WheelState.Failed) return;
         if (window.Files is { } files) Reveal(kind, files, cursor);
         else window.ShowPending(kind, cursor);
@@ -87,6 +92,7 @@ internal sealed class WheelController : IDisposable
     {
         var inputs = files.Select(FileActionCatalog.InputForPath);
         var actions = files.Count == 0 ? [] : FileActionCatalog.Actions(kind, inputs, WindowsFileConverter.Abilities);
+        DebugLog.Write($"files: {files.Count}; slices: {string.Join(", ", actions.Select(action => action.Id))}");
         if (actions.Count == 0)
         {
             Hide();
@@ -140,6 +146,7 @@ internal sealed class WheelController : IDisposable
     /// <summary>Affiche le résultat au centre du camembert, le garde pour le menu, puis referme.</summary>
     private async void Finish(WheelState state, string message)
     {
+        DebugLog.Write($"result: {message}");
         window.ShowStatus(state, message);
         LastResult = message;
         ResultChanged?.Invoke(message);

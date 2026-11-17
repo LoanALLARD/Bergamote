@@ -53,6 +53,8 @@ jobs:
           .github/scripts/run.sh dotnet publish windows/Bergamote.Windows -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true -o windows/publish
+      - name: Start the app
+        run: .github/scripts/run.sh pwsh -NoProfile -File windows/scripts/smoke-test.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: Bergamote-windows-x64

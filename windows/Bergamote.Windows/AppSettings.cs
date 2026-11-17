@@ -109,3 +109,27 @@ internal static class ErrorLog
         }
     }
 }
+
+/// <summary>
+/// Journal de diagnostic, écrit seulement si la variable BERGAMOTE_DEBUG est définie :
+/// %LOCALAPPDATA%\Bergamote\debug.log. Sert au test de démarrage (windows/scripts/smoke-test.ps1).
+/// </summary>
+internal static class DebugLog
+{
+    private static readonly bool Enabled = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BERGAMOTE_DEBUG"));
+
+    public static void Write(string message)
+    {
+        if (!Enabled) return;
+        try
+        {
+            var path = Path.Combine(Path.GetDirectoryName(ErrorLog.FilePath)!, "debug.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.AppendAllText(path, message + Environment.NewLine);
+        }
+        catch (IOException)
+        {
+            // Diagnostic seulement.
+        }
+    }
+}
