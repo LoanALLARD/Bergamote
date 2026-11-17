@@ -8,12 +8,13 @@ import ServiceManagement
 @Observable
 final class LoginItem {
     private(set) var status = SMAppService.mainApp.status
+    /// La dernière demande a échoué (app lancée hors d'un bundle, par exemple).
+    private(set) var failed = false
 
+    /// Avant la première inscription, macOS répond « introuvable » : ce n'est pas une erreur.
     var isEnabled: Bool { status == .enabled }
     /// macOS attend que l'utilisateur approuve l'élément dans Réglages Système.
     var needsApproval: Bool { status == .requiresApproval }
-    /// Hors d'un bundle installé (`swift run`), macOS ne sait pas quoi lancer.
-    var isAvailable: Bool { status != .notFound }
 
     func refresh() {
         status = SMAppService.mainApp.status
@@ -26,7 +27,9 @@ final class LoginItem {
             } else {
                 try SMAppService.mainApp.unregister()
             }
+            failed = false
         } catch {
+            failed = true
             Logger.wheel.error("Ouverture de session : \(error.localizedDescription, privacy: .public)")
         }
         refresh()

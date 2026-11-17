@@ -1,5 +1,7 @@
 import AppKit
 import BergamoteKit
+import os
+import ServiceManagement
 import SwiftUI
 
 /// Bergamote vit uniquement dans la barre des menus : pas de fenêtre principale, pas d'icône dans
@@ -38,5 +40,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Pas d'icône dans le Dock, y compris avec `swift run` (binaire sans Info.plist).
         NSApp.setActivationPolicy(.accessory)
         radialMenu.startMonitoring()
+        Logger.wheel.notice("Langue : \(Localization.current, privacy: .public) ; ouverture de session : \(String(describing: SMAppService.mainApp.status.rawValue), privacy: .public)")
     }
 }

@@ -53,11 +53,10 @@ struct SettingsView: View {
 
             Section {
                 Toggle(L("settings.login"), isOn: Binding(get: { loginItem.isEnabled }, set: { loginItem.set($0) }))
-                    .disabled(!loginItem.isAvailable)
                 if loginItem.needsApproval {
                     Text(L("settings.login_approval")).font(.callout).foregroundStyle(.orange)
-                } else if !loginItem.isAvailable {
-                    Text(L("settings.login_unavailable")).font(.callout).foregroundStyle(.secondary)
+                } else if loginItem.failed {
+                    Text(L("settings.login_unavailable")).font(.callout).foregroundStyle(.orange)
                 }
                 Picker(L("settings.language"), selection: languageSelection) {
                     Text(L("settings.language_system")).tag(Localization.systemPreference)

@@ -65,6 +65,11 @@ sleep 1.5
 xdotool search --name "Réglages de Bergamote" > "$OUT/settings-window.txt" || true
 import -window root "$OUT/6-settings.png"
 
+# Cocher « Lancer Bergamote à l'ouverture de session » : l'entrée de démarrage est créée.
+xdotool mousemove 444 511 click 1
+sleep 0.5
+cp "$XDG_CONFIG_HOME/autostart/bergamote.desktop" "$OUT/autostart.desktop" 2>/dev/null || true
+
 # Passer la langue à « English » : la fenêtre se reconstruit en anglais.
 # (La fenêtre de réglages est centrée par le gestionnaire de fenêtres : la liste des langues est là.)
 xdotool mousemove 770 550 click 1
@@ -83,6 +88,7 @@ check "parts : convert_images:jpeg" "le camembert reçoit le fichier glissé"
 check "action : convert_images:jpeg" "le dépôt lance la conversion"
 check "résultat : 1 fichier créé" "la conversion aboutit"
 if [ -s "$OUT/settings-window.txt" ]; then echo "ok    relancer l'app ouvre les réglages"; else echo "ÉCHEC pas de fenêtre de réglages"; status=1; fi
+if grep -q -- "--background" "$OUT/autostart.desktop" 2>/dev/null; then echo "ok    le réglage crée l'entrée de démarrage automatique"; else echo "ÉCHEC pas d'entrée de démarrage automatique"; status=1; fi
 if [ -s "$OUT/settings-english.txt" ]; then echo "ok    changer de langue s'applique tout de suite"; else echo "ÉCHEC la fenêtre n'est pas passée en anglais"; status=1; fi
 if [ -s "$WORK/photo.jpeg" ]; then echo "ok    photo.jpeg est créé à côté de l'original"; else echo "ÉCHEC photo.jpeg absent"; status=1; fi
 [ "$status" -eq 0 ] || { echo "--- journal ---"; cat "$OUT/bergamote.log" "$OUT/drag_source.log"; }
