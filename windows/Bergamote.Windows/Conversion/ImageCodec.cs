@@ -83,14 +83,18 @@ internal static class ImageCodec
         var scale = (double)maxPixelSize / largest;
         var width = Math.Max(1, (int)Math.Round(image.PixelWidth * scale));
         var height = Math.Max(1, (int)Math.Round(image.PixelHeight * scale));
-        return Draw(image, width, height, background: null);
+        // Le rendu a toujours une couche alpha : une image opaque doit le rester (JPEG, pas PNG).
+        return HasAlpha(image) ? Draw(image, width, height, background: null) : Opaque(Draw(image, width, height, Brushes.White));
     }
 
-    private static BitmapSource FlattenOnWhite(BitmapSource image)
+    private static BitmapSource FlattenOnWhite(BitmapSource image) =>
+        Opaque(Draw(image, image.PixelWidth, image.PixelHeight, Brushes.White));
+
+    private static BitmapSource Opaque(BitmapSource image)
     {
-        var flattened = new FormatConvertedBitmap(Draw(image, image.PixelWidth, image.PixelHeight, Brushes.White), PixelFormats.Bgr24, null, 0);
-        flattened.Freeze();
-        return flattened;
+        var opaque = new FormatConvertedBitmap(image, PixelFormats.Bgr24, null, 0);
+        opaque.Freeze();
+        return opaque;
     }
 
     private static BitmapSource Draw(BitmapSource image, int width, int height, Brush? background)

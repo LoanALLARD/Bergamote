@@ -8,3 +8,5 @@ core/target/
 mac/Frameworks/
 windows/**/bin/
 windows/**/obj/
+linux/target/
+linux/dist/
