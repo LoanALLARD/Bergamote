@@ -30,6 +30,10 @@ jobs:
         run: .github/scripts/run.sh mac/scripts/build-core.sh
       - name: Test
         run: .github/scripts/run.sh swift test --package-path mac
+      - name: Drag and drop on a real desktop
+        run: |
+          .github/scripts/run.sh swift build -c release --package-path mac
+          .github/scripts/run.sh swift mac/scripts/smoke-test.swift mac/.build/release/Bergamote
       - name: Package
         run: .github/scripts/run.sh mac/scripts/package-release.sh
       - uses: actions/upload-artifact@v4

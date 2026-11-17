@@ -23,6 +23,13 @@ final class RadialMenuController {
     static let soundKey = "wheel.sound"
     static let debugKey = "wheel.debug"
 
+    /// Diagnostic sur la sortie d'erreur quand BERGAMOTE_DEBUG est défini : sert au test de bout
+    /// en bout (mac/scripts/smoke-test.swift).
+    private static let tracesToStandardError = ProcessInfo.processInfo.environment["BERGAMOTE_DEBUG"] != nil
+    static func debug(_ message: @autoclosure () -> String) {
+        if tracesToStandardError { FileHandle.standardError.write(Data("bergamote: \(message())\n".utf8)) }
+    }
+
     let model = RadialMenuModel()
     private let folderAccess: FolderAccessStore
     private var detector = WheelTriggerDetector()
@@ -65,6 +72,7 @@ final class RadialMenuController {
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
         Logger.wheel.notice("Camembert : surveillance active, \(self.monitors.count, privacy: .public) moniteur(s), App Nap désactivé")
+        Self.debug("started; language \(Localization.current)")
 
         // Diagnostic : `--args -wheel.demo conversion` ouvre le camembert du glisser en cours au bout de
         // 2 s, comme si la touche avait été tapée, puis le referme. Sert à vérifier l'affichage seul.
@@ -127,6 +135,7 @@ final class RadialMenuController {
             \(types.count, privacy: .public) typé(s) [\(Set(types.compactMap(\.preferredFilenameExtension)).sorted().joined(separator: ","), privacy: .public)], \
             \(actions.count, privacy: .public) action(s)
             """)
+        Self.debug("gesture: \(kind.rawValue); files: \(urls.count); slices: \(actions.map(\.title).joined(separator: ", "))")
         guard !actions.isEmpty else {
             detector.dismiss()
             hidePanel()
@@ -209,6 +218,7 @@ final class RadialMenuController {
             showPanel(at: center)
         }
 
+        Self.debug("action: \(action.title) on \(urls.count) file(s)")
         model.status = .working(action.title)
         let scopes = folderAccess.startAccessing()
         let started = Date()
@@ -236,6 +246,7 @@ final class RadialMenuController {
     /// Affiche le résultat au centre du camembert, le garde pour le panneau de la barre des
     /// menus, puis referme.
     private func finish(with status: RadialMenuModel.Status) {
+        Self.debug("result: \(status)")
         model.status = status
         if case .done(let message) = status { model.lastResult = message }
         if case .failed(let message) = status { model.lastResult = message }
