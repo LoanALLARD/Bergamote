@@ -19,8 +19,9 @@ export DISPLAY=:99 XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME="$WORK/cache" L
 Xvfb :99 -screen 0 1280x800x24 >/dev/null 2>&1 &
 sleep 1
 openbox >/dev/null 2>&1 &
-# Un compositeur : sans lui, pas de fenêtre transparente.
-picom --backend xrender >/dev/null 2>&1 &
+# Un compositeur : sans lui, pas de fenêtre transparente. BERGAMOTE_TEST_NO_COMPOSITOR=1 teste le
+# repli (fenêtre découpée en disque, parts courantes en attendant les fichiers).
+[ -n "${BERGAMOTE_TEST_NO_COMPOSITOR:-}" ] || picom --backend xrender >/dev/null 2>&1 &
 sleep 1
 
 convert -size 400x300 gradient:blue-yellow "$WORK/photo.png"
