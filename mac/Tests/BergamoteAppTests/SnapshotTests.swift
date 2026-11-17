@@ -54,6 +54,28 @@ struct SnapshotTests {
         }
     }
 
+    /// Les réglages, le panneau et un camembert dans chaque langue : `settings-fr.png`, `settings-en.png`…
+    @Test func renderEachLanguage() async throws {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        defer { Localization.apply(preference: "fr") }
+        let pdfs = try sampleFiles().filter { $0.pathExtension == "pdf" }
+        for language in Localization.languages.map(\.code) {
+            Localization.apply(preference: language)
+            #expect(Localization.current == language)
+            let settings = SettingsView().environment(FolderAccessStore()).background(Color(nsColor: .windowBackgroundColor))
+            try await snapshot(settings, size: CGSize(width: 480, height: 620), name: "settings-\(language)", borderless: true)
+
+            let tools = RadialMenuModel()
+            tools.configure(kind: .tools, files: pdfs, actions: FileActionCatalog.actions(for: .tools, inputs: pdfs.map { _ in .pdf }))
+            tools.highlighted = 0
+            tools.lastResult = FileConverter.summary(ofCreated: 2)
+            let size = CGSize(width: RadialMenuView.size, height: RadialMenuView.size)
+            try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "wheel-tools-\(language)", borderless: true)
+            let panel = MenuBarPanel(model: tools).background(Color(nsColor: .windowBackgroundColor))
+            try await snapshot(panel, size: CGSize(width: 320, height: 250), name: "menu-bar-panel-\(language)", borderless: true)
+        }
+    }
+
     /// Trois PNG et quatre PDF d'une page, pour des résumés réalistes au centre du camembert.
     private func sampleFiles() throws -> [URL] {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("bergamote-snapshot-files-\(UUID().uuidString)")

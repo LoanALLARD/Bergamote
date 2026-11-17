@@ -13,9 +13,9 @@ public enum ConversionError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unreadable(let url): "Impossible de lire « \(url.lastPathComponent) »"
-        case .unsupportedOutput(let type): "macOS ne sait pas écrire le format \(type)"
-        case .writeFailed(let url): "Impossible d'écrire « \(url.lastPathComponent) »"
+        case .unreadable(let url): L("error.unreadable", ["name": url.lastPathComponent])
+        case .unsupportedOutput(let type): L("error.unsupported_output", ["system": "macOS", "format": type])
+        case .writeFailed(let url): L("error.write_failed", ["name": url.lastPathComponent])
         }
     }
 }
@@ -30,6 +30,8 @@ public struct FileConverter: Sendable {
     public var compressionQuality = 0.6
     public var compressionMaxPixelSize = 2560
     public var renderDPI: CGFloat = 150
+    /// Résolution du rendu envoyé à l'OCR pour « Cherchable ».
+    public var searchableOCRDPI: CGFloat = 220
 
     public init(outputDirectory: URL? = nil) {
         self.outputDirectory = outputDirectory
@@ -94,7 +96,7 @@ public struct FileConverter: Sendable {
         let output: URL
         if type.conforms(to: .pdf) {
             guard let pdf = PDFDocument(url: url) else { throw ConversionError.unreadable(url) }
-            output = uniqueOutputURL(for: url, suffix: " (compressé)", type: .pdf)
+            output = uniqueOutputURL(for: url, suffix: L("suffix.compressed"), type: .pdf)
             guard pdf.write(to: output, withOptions: [.saveImagesAsJPEGOption: true, .optimizeImagesForScreenOption: true]) else {
                 throw ConversionError.writeFailed(output)
             }
@@ -107,7 +109,7 @@ public struct FileConverter: Sendable {
                   ] as CFDictionary)
             else { throw ConversionError.unreadable(url) }
             let outputType: UTType = Self.hasAlpha(image) ? .png : .jpeg
-            output = uniqueOutputURL(for: url, suffix: " (compressé)", type: outputType)
+            output = uniqueOutputURL(for: url, suffix: L("suffix.compressed"), type: outputType)
             try write(image, to: output, type: outputType, quality: compressionQuality)
         }
         if Self.size(of: output) >= Self.size(of: url) {
@@ -121,7 +123,7 @@ public struct FileConverter: Sendable {
     /// l'orientation est conservée pour que la photo reste à l'endroit. Pour un PDF : auteur, titre…
     func stripMetadata(_ url: URL) throws -> URL {
         let type = FileTypes.contentType(of: url) ?? .data
-        let output = uniqueOutputURL(for: url, suffix: " (sans métadonnées)", type: type)
+        let output = uniqueOutputURL(for: url, suffix: L("suffix.no_metadata"), type: type)
         if type.conforms(to: .pdf) {
             guard let pdf = PDFDocument(url: url) else { throw ConversionError.unreadable(url) }
             pdf.documentAttributes = [:]
@@ -174,7 +176,7 @@ public struct FileConverter: Sendable {
                 merged.insert(page, at: merged.pageCount)
             }
         }
-        let output = uniqueOutputURL(for: first, suffix: urls.count > 1 ? " (fusion)" : "", type: .pdf)
+        let output = uniqueOutputURL(for: first, suffix: urls.count > 1 ? L("suffix.merged") : "", type: .pdf)
         guard merged.write(to: output) else { throw ConversionError.writeFailed(output) }
         return output
     }
@@ -191,14 +193,61 @@ public struct FileConverter: Sendable {
         return outputs
     }
 
-    /// Ajoute une couche de texte invisible issue de l'OCR (PDFKit, macOS 13+) : le document
-    /// devient sélectionnable et cherchable partout, y compris dans Spotlight et Aperçu.
+    /// Ajoute une couche de texte invisible issue de l'OCR : le document devient sélectionnable
+    /// et cherchable partout, y compris dans Spotlight et Aperçu. Chaque page est redessinée telle
+    /// quelle, puis le texte reconnu par Vision est posé par-dessus, invisible, à sa place.
     func makeSearchable(_ url: URL) throws -> URL {
-        let pdf = PDFDocument()
-        for page in try Self.pages(of: url) { pdf.insert(page, at: pdf.pageCount) }
-        let output = uniqueOutputURL(for: url, suffix: " (cherchable)", type: .pdf)
-        guard pdf.write(to: output, withOptions: [.saveTextFromOCROption: true]) else { throw ConversionError.writeFailed(output) }
+        let pages = try Self.pages(of: url)
+        let output = uniqueOutputURL(for: url, suffix: L("suffix.searchable"), type: .pdf)
+        guard let context = CGContext(output as CFURL, mediaBox: nil, nil) else { throw ConversionError.writeFailed(output) }
+        let ocr = VisionOCR()
+        for page in pages {
+            let box = page.bounds(for: .mediaBox)
+            var mediaBox = CGRect(origin: .zero, size: box.size)
+            let lines = try PDFRendering.image(of: page, dpi: searchableOCRDPI).map(ocr.lines(in:)) ?? []
+            context.beginPage(mediaBox: &mediaBox)
+            context.saveGState()
+            context.translateBy(x: -box.minX, y: -box.minY)
+            page.draw(with: .mediaBox, to: context)
+            context.restoreGState()
+            Self.drawInvisibleText(lines, in: mediaBox, context: context)
+            context.endPage()
+        }
+        context.closePDF()
         return output
+    }
+
+    /// Pose chaque ligne dans son cadre, étirée à sa largeur, en mode « invisible » : le texte
+    /// se sélectionne et se cherche, mais ne se voit pas.
+    static func drawInvisibleText(_ lines: [VisionOCR.Line], in page: CGRect, context: CGContext) {
+        context.saveGState()
+        context.setTextDrawingMode(.invisible)
+        for line in lines where !line.text.isEmpty {
+            let frame = CGRect(
+                x: line.box.minX * page.width, y: line.box.minY * page.height,
+                width: line.box.width * page.width, height: line.box.height * page.height)
+            let font = CTFontCreateWithName("Helvetica" as CFString, max(frame.height * 0.85, 1), nil)
+            let text = NSAttributedString(string: line.text, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])
+            let typeset = CTLineCreateWithAttributedString(text)
+            let width = CTLineGetTypographicBounds(typeset, nil, nil, nil)
+            guard width > 0 else { continue }
+            context.saveGState()
+            // La ligne de base est un peu au-dessus du bas du cadre (jambages).
+            context.translateBy(x: frame.minX, y: frame.minY + frame.height * 0.2)
+            context.scaleBy(x: frame.width / width, y: 1)
+            for run in CTLineGetGlyphRuns(typeset) as? [CTRun] ?? [] {
+                let count = CTRunGetGlyphCount(run)
+                var glyphs = [CGGlyph](repeating: 0, count: count)
+                var positions = [CGPoint](repeating: .zero, count: count)
+                CTRunGetGlyphs(run, CFRange(location: 0, length: count), &glyphs)
+                CTRunGetPositions(run, CFRange(location: 0, length: count), &positions)
+                let attributes = CTRunGetAttributes(run) as NSDictionary
+                let runFont = attributes[kCTFontAttributeName as String].map { $0 as! CTFont } ?? font
+                CTFontDrawGlyphs(runFont, glyphs, positions, count, context)
+            }
+            context.restoreGState()
+        }
+        context.restoreGState()
     }
 
     // MARK: Texte

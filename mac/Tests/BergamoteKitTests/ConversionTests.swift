@@ -87,6 +87,20 @@ struct ConversionTests {
         let searchable = try #require(try converter.perform(.makeSearchable, on: [scan]).first)
         #expect(searchable.lastPathComponent == "scan (cherchable).pdf")
         #expect(PDFDocument(url: searchable)?.string?.localizedCaseInsensitiveContains("facture") == true)
+        // La couche de texte est invisible (la page se rend comme le scan) et posée sur le texte.
+        let result = try #require(PDFDocument(url: searchable))
+        let (before, after) = (try #require(PDFDocument(url: scan)?.page(at: 0)), try #require(result.page(at: 0)))
+        #expect(after.bounds(for: .mediaBox).size == before.bounds(for: .mediaBox).size)
+        let rendered = try [before, after].map { try #require(PDFRendering.image(of: $0, dpi: 72)?.dataProvider?.data as Data?) }
+        let difference = zip(rendered[0], rendered[1]).reduce(0) { $0 + abs(Int($1.0) - Int($1.1)) }
+        #expect(Double(difference) / Double(rendered[0].count) < 1.0, "écart moyen par octet")
+        let word = try #require(result.findString("FACTURE", withOptions: .caseInsensitive).first)
+        let wordBox = word.bounds(for: after)
+        let scanImage = try #require(PDFRendering.image(of: before, dpi: 220))
+        let scanned = try #require(try VisionOCR().lines(in: scanImage).first { $0.text.uppercased().contains("FACTURE") })
+        let page = after.bounds(for: .mediaBox)
+        #expect(abs(wordBox.midY - scanned.box.midY * page.height) < scanned.box.height * page.height)
+        #expect(wordBox.minX >= scanned.box.minX * page.width - 4 && wordBox.maxX <= scanned.box.maxX * page.width + 4)
 
         let txt = try #require(try converter.perform(.extractText, on: [scan]).first)
         #expect(try String(contentsOf: txt, encoding: .utf8).contains("1 234,56"))

@@ -26,8 +26,8 @@ public enum WheelKind: String, Sendable, CaseIterable, Codable {
 
     public var title: String {
         switch self {
-        case .conversion: "Convertir"
-        case .tools: "Outils"
+        case .conversion: L("wheel.convert")
+        case .tools: L("wheel.tools")
         }
     }
 

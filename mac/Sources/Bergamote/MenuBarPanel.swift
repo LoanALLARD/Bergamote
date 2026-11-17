@@ -9,6 +9,8 @@ struct MenuBarPanel: View {
     @AppStorage(RadialMenuController.enabledKey) private var isEnabled = true
     @AppStorage(RadialMenuController.conversionModifierKey) private var conversionModifier = WheelModifier.shift.rawValue
     @AppStorage(RadialMenuController.toolsModifierKey) private var toolsModifier = WheelModifier.command.rawValue
+    /// Observé pour que le panneau se redessine quand la langue change.
+    @AppStorage(Localization.preferenceKey) private var language = Localization.systemPreference
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -16,18 +18,18 @@ struct MenuBarPanel: View {
                 Image(systemName: "chart.pie.fill").foregroundStyle(.tint)
                 Text("Bergamote").font(.headline)
                 Spacer()
-                Toggle("Activer", isOn: $isEnabled)
+                Toggle(L("menu.enable"), isOn: $isEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .labelsHidden()
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Glissez des fichiers depuis le Finder, puis :")
+                Text(L("menu.drag_hint", ["source": L("source.finder")]))
                     .foregroundStyle(.secondary)
-                gestureRow(key: WheelModifier(rawValue: conversionModifier), title: "Convertir", detail: "PNG, JPEG, HEIC, PDF, DOCX…")
-                gestureRow(key: WheelModifier(rawValue: toolsModifier), title: "Outils", detail: "compresser, anonymiser, OCR…")
-                Text("Lâchez-les sur une part : le résultat apparaît à côté de l'original.")
+                gestureRow(key: WheelModifier(rawValue: conversionModifier), title: L("wheel.convert"), detail: L("menu.convert_detail"))
+                gestureRow(key: WheelModifier(rawValue: toolsModifier), title: L("wheel.tools"), detail: L("menu.tools_detail"))
+                Text(L("menu.drop_hint"))
                     .foregroundStyle(.secondary)
             }
             .font(.callout)
@@ -41,16 +43,17 @@ struct MenuBarPanel: View {
 
             Divider()
             HStack {
-                Button("Réglages…") {
+                Button(L("menu.settings")) {
                     NSApp.activate()
                     openSettings()
                 }
                 Spacer()
-                Button("Quitter") { NSApp.terminate(nil) }
+                Button(L("menu.quit")) { NSApp.terminate(nil) }
             }
         }
         .padding(14)
         .frame(width: 320)
+        .id(language)
     }
 
     private func gestureRow(key: WheelModifier, title: String, detail: String) -> some View {

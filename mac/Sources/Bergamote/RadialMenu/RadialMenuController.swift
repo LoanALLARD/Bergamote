@@ -190,7 +190,7 @@ final class RadialMenuController {
         // (désormais accessibles) se prêtent à l'action choisie.
         let types = urls.map { FileTypes.contentType(of: $0) ?? .data }
         guard FileActionCatalog.actions(for: model.kind, inputs: types).contains(where: { $0.operation == action.operation }) else {
-            finish(with: .failed("« \(action.title) » ne s'applique pas à ces fichiers"))
+            finish(with: .failed(L("error.not_applicable", ["title": action.title])))
             return
         }
 

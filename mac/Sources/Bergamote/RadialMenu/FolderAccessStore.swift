@@ -43,8 +43,8 @@ final class FolderAccessStore {
     /// alors tous couverts.
     func requestAccess(covering folders: Set<URL>) -> Bool {
         let panel = NSOpenPanel()
-        panel.message = "Bergamote enregistre les résultats à côté des originaux. Autorisez votre dossier personnel une fois : tous les dossiers qu'il contient seront inclus."
-        panel.prompt = "Autoriser l'accès"
+        panel.message = L("folders.panel_message")
+        panel.prompt = L("folders.panel_prompt")
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false

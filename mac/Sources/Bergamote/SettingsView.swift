@@ -7,27 +7,39 @@ struct SettingsView: View {
     @AppStorage(RadialMenuController.conversionModifierKey) private var conversionModifier = WheelModifier.shift.rawValue
     @AppStorage(RadialMenuController.toolsModifierKey) private var toolsModifier = WheelModifier.command.rawValue
     @AppStorage(RadialMenuController.soundKey) private var playsSound = true
+    @AppStorage(Localization.preferenceKey) private var language = Localization.systemPreference
+    @State private var loginItem = LoginItem()
 
     private let choices: [WheelModifier] = [.shift, .control, .option, .command]
+
+    /// La langue est appliquée au cœur avant que la vue se redessine dans cette langue.
+    private var languageSelection: Binding<String> {
+        Binding(
+            get: { language },
+            set: { preference in
+                Localization.apply(preference: preference)
+                language = preference
+            })
+    }
 
     var body: some View {
         Form {
             Section {
-                Toggle("Activer le camembert", isOn: $isEnabled)
-                Picker("Camembert de conversion", selection: $conversionModifier) {
+                Toggle(L("settings.enable"), isOn: $isEnabled)
+                Picker(L("settings.conversion_key"), selection: $conversionModifier) {
                     ForEach(choices, id: \.rawValue) { Text($0.symbol).tag($0.rawValue) }
                 }
-                Picker("Camembert d'outils", selection: $toolsModifier) {
+                Picker(L("settings.tools_key"), selection: $toolsModifier) {
                     ForEach(choices, id: \.rawValue) { Text($0.symbol).tag($0.rawValue) }
                 }
                 if conversionModifier == toolsModifier {
-                    Text("Les deux camemberts utilisent la même touche : seul celui de conversion s'ouvrira.")
+                    Text(L("settings.key_conflict"))
                         .font(.callout).foregroundStyle(.orange)
                 }
                 HStack {
-                    Toggle("Clic au passage d'une part", isOn: $playsSound)
+                    Toggle(L("settings.sound"), isOn: $playsSound)
                     Spacer()
-                    Button("Écouter") {
+                    Button(L("settings.listen")) {
                         WheelSound.tick(force: true)
                         Task {
                             try? await Task.sleep(for: .milliseconds(140))
@@ -36,7 +48,21 @@ struct SettingsView: View {
                     }
                 }
             } footer: {
-                Text("Glissez des fichiers depuis le Finder, puis tapez la touche choisie (ou maintenez-la avant de glisser) : le camembert s'ouvre sous le curseur. Lâchez les fichiers sur une part.")
+                Text(L("settings.gesture_help", ["source": L("source.finder")]))
+            }
+
+            Section {
+                Toggle(L("settings.login"), isOn: Binding(get: { loginItem.isEnabled }, set: { loginItem.set($0) }))
+                    .disabled(!loginItem.isAvailable)
+                if loginItem.needsApproval {
+                    Text(L("settings.login_approval")).font(.callout).foregroundStyle(.orange)
+                } else if !loginItem.isAvailable {
+                    Text(L("settings.login_unavailable")).font(.callout).foregroundStyle(.secondary)
+                }
+                Picker(L("settings.language"), selection: languageSelection) {
+                    Text(L("settings.language_system")).tag(Localization.systemPreference)
+                    ForEach(Localization.languages, id: \.code) { Text($0.name).tag($0.code) }
+                }
             }
 
             Section {
@@ -45,21 +71,22 @@ struct SettingsView: View {
                         Label(folder.path(percentEncoded: false), systemImage: "folder")
                             .lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        Button("Retirer") { folderAccess.remove(folder) }
+                        Button(L("folders.remove")) { folderAccess.remove(folder) }
                     }
                 }
                 if FolderAccessStore.isSandboxed {
-                    Button("Autoriser le dossier personnel…") {
+                    Button(L("folders.allow_home")) {
                         _ = folderAccess.requestAccess(covering: [FolderAccessStore.homeFolder])
                     }
                 }
             } header: {
-                Text("Enregistrement à côté des originaux")
+                Text(L("folders.title"))
             } footer: {
-                Text("Les résultats sont créés dans le même dossier que le fichier d'origine, qui n'est jamais modifié. macOS demande d'autoriser une fois votre dossier personnel : tous les dossiers qu'il contient sont inclus.")
+                Text(L("folders.help"))
             }
         }
         .formStyle(.grouped)
         .frame(width: 480)
+        .onAppear { loginItem.refresh() }
     }
 }

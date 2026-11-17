@@ -8,6 +8,11 @@ import SwiftUI
 struct BergamoteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        // Avant le premier affichage : les textes viennent du cœur, dans la langue choisie.
+        Localization.apply(preference: UserDefaults.standard.string(forKey: Localization.preferenceKey) ?? Localization.systemPreference)
+    }
+
     var body: some Scene {
         MenuBarExtra("Bergamote", systemImage: "chart.pie") {
             MenuBarPanel(model: appDelegate.radialMenu.model)
