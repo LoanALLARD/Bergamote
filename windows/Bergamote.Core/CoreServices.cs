@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
@@ -52,5 +53,38 @@ public static class ClickSound
         {
             NativeMethods.bgm_bytes_free(bytes, length);
         }
+    }
+}
+
+/// <summary>Langue de l'app et textes partagés avec le Mac et Linux (core/src/i18n.rs).</summary>
+public static class AppLanguage
+{
+    /// <summary>Réglage « langue du système ».</summary>
+    public const string SystemPreference = "system";
+
+    /// <summary>Langues proposées : code et nom, qui ne se traduit pas.</summary>
+    public static readonly IReadOnlyList<(string Code, string Name)> Languages = [("fr", "Français"), ("en", "English")];
+
+    /// <summary>Langue retenue pour un réglage (system, fr, en) et une langue du système (fr-FR, en-GB…).</summary>
+    public static string Resolve(string preference, string systemLocale) =>
+        Marshal.PtrToStringUTF8(NativeMethods.bgm_resolve_language(preference, systemLocale)) ?? "en";
+
+    /// <summary>Applique le réglage au cœur : titres des parts et textes changent aussitôt.</summary>
+    public static void Apply(string preference) =>
+        NativeMethods.bgm_set_language(Resolve(preference, CultureInfo.CurrentUICulture.Name));
+
+    /// <summary>Code de la langue courante : fr ou en.</summary>
+    public static string Current => Marshal.PtrToStringUTF8(NativeMethods.bgm_language()) ?? "fr";
+
+    /// <summary>
+    /// Texte d'une clé dans la langue courante, variables remplacées :
+    /// <c>Text("error.unreadable", ("name", "photo.png"))</c>. Une clé inconnue est renvoyée telle
+    /// quelle, pour qu'un oubli se voie.
+    /// </summary>
+    public static string Text(string key, params (string Name, string Value)[] values)
+    {
+        var text = NativeMethods.Take(NativeMethods.bgm_text(key)) ?? key;
+        foreach (var (name, value) in values) text = text.Replace("{" + name + "}", value);
+        return text;
     }
 }

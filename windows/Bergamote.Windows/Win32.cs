@@ -135,12 +135,13 @@ internal static class GlobalInput
         Math.Abs(to.X - from.X) > Win32.GetSystemMetrics(Win32.SM_CXDRAG)
         || Math.Abs(to.Y - from.Y) > Win32.GetSystemMetrics(Win32.SM_CYDRAG);
 
+    /// <summary>Nom de la touche dans la langue courante (« Maj » ou « Shift »…).</summary>
     public static string Name(WheelModifier key) => key switch
     {
-        WheelModifier.Shift => "Maj",
-        WheelModifier.Control => "Ctrl",
-        WheelModifier.Alt => "Alt",
-        WheelModifier.Windows => "Windows",
+        WheelModifier.Shift => AppLanguage.Text("key.shift"),
+        WheelModifier.Control => AppLanguage.Text("key.control"),
+        WheelModifier.Alt => AppLanguage.Text("key.alt"),
+        WheelModifier.Windows => AppLanguage.Text("key.windows"),
         _ => key.ToString(),
     };
 }

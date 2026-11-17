@@ -119,7 +119,7 @@ internal sealed class WheelController : IDisposable
         var inputs = files.Select(FileActionCatalog.InputForPath).ToList();
         if (!FileActionCatalog.Actions(window.Kind, inputs, WindowsFileConverter.Abilities).Any(a => a.Operation == action.Operation))
         {
-            Finish(WheelState.Failed, $"« {action.Title} » ne s'applique pas à ces fichiers");
+            Finish(WheelState.Failed, AppLanguage.Text("error.not_applicable", ("title", action.Title)));
             return;
         }
         window.ShowStatus(WheelState.Working, action.Title);
@@ -133,7 +133,7 @@ internal sealed class WheelController : IDisposable
         catch (Exception error)
         {
             ErrorLog.Write(error);
-            Finish(WheelState.Failed, error is ConversionException ? error.Message : $"Échec : {error.Message}");
+            Finish(WheelState.Failed, error is ConversionException ? error.Message : AppLanguage.Text("error.failed", ("reason", error.Message)));
         }
     }
 

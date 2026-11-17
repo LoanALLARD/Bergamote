@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using Bergamote.Core;
 
 namespace Bergamote.Desktop;
 
@@ -31,6 +32,10 @@ internal sealed class BergamoteApp : Application
         DispatcherUnhandledException += OnUnhandledException;
 
         settings = AppSettings.Load();
+        // Avant tout affichage, et avant les autres abonnés : les textes viennent du cœur, dans
+        // la langue choisie.
+        AppLanguage.Apply(settings.Language);
+        settings.Changed += () => AppLanguage.Apply(settings.Language);
         controller = new WheelController(settings);
         tray = new TrayIcon(settings, controller, OpenSettings, Shutdown);
         controller.Start();
@@ -43,6 +48,12 @@ internal sealed class BergamoteApp : Application
         {
             settingsWindow = new SettingsWindow(settings);
             settingsWindow.Closed += (_, _) => settingsWindow = null;
+            // La fenêtre est reconstruite dans la nouvelle langue.
+            settingsWindow.LanguageChanged += () => Dispatcher.BeginInvoke(() =>
+            {
+                settingsWindow?.Close();
+                OpenSettings();
+            });
             settingsWindow.Show();
         }
         settingsWindow.Activate();

@@ -15,6 +15,8 @@ internal sealed class AppSettings
     public WheelModifier ConversionKey { get; set; } = WheelModifier.Shift;
     public WheelModifier ToolsKey { get; set; } = WheelModifier.Control;
     public bool Sound { get; set; } = true;
+    /// <summary>system, fr ou en.</summary>
+    public string Language { get; set; } = AppLanguage.SystemPreference;
 
     /// <summary>Vrai au tout premier lancement (pas encore de fichier de réglages).</summary>
     [JsonIgnore]

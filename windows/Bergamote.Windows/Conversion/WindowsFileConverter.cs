@@ -42,12 +42,14 @@ public sealed class WindowsFileConverter
             FileOperation.Compress => paths.Select(Compress).OfType<string>().ToList(),
             FileOperation.StripMetadata => paths.Select(StripMetadata).ToList(),
             FileOperation.MergePdf => [MergeIntoPdf(paths)],
-            _ => throw new ConversionException($"« {action.Title} » n'est pas encore disponible sur Windows"),
+            _ => throw Unavailable(action.Title),
         };
     }
 
-    private static string FormatOf(FileAction action) =>
-        action.Format ?? throw new ConversionException($"« {action.Title} » : format de sortie manquant");
+    private static string FormatOf(FileAction action) => action.Format ?? throw Unavailable(action.Title);
+
+    private static ConversionException Unavailable(string title) =>
+        new(AppLanguage.Text("error.unavailable", ("title", title), ("system", "Windows")));
 
     private string Output(string source, string suffix, string extension) =>
         OutputPath.Unique(source, suffix, extension, OutputDirectory);
@@ -67,11 +69,11 @@ public sealed class WindowsFileConverter
     {
         if (FileActionCatalog.InputForPath(path).Category == FileCategory.Pdf)
         {
-            throw new ConversionException("La compression des PDF n'est pas encore disponible sur Windows");
+            throw Unavailable(AppLanguage.Text("action.compress"));
         }
         var image = ImageCodec.Resize(ImageCodec.Load(path), CompressionMaxPixelSize);
         var format = ImageCodec.HasAlpha(image) ? "png" : "jpeg";
-        var output = Output(path, " (compressé)", format);
+        var output = Output(path, AppLanguage.Text("suffix.compressed"), format);
         ImageCodec.Save(image, output, format, CompressionQuality);
         if (new FileInfo(output).Length >= new FileInfo(path).Length)
         {
@@ -90,7 +92,7 @@ public sealed class WindowsFileConverter
         var input = FileActionCatalog.InputForPath(path);
         if (input.Category == FileCategory.Pdf)
         {
-            var output = Output(path, " (sans métadonnées)", "pdf");
+            var output = Output(path, AppLanguage.Text("suffix.no_metadata"), "pdf");
             using var document = PdfFiles.Open(path, PdfDocumentOpenMode.Modify);
             document.Info.Elements.Clear();
             document.Internals.Catalog.Elements.Remove("/Metadata");
@@ -99,7 +101,7 @@ public sealed class WindowsFileConverter
         }
         var image = ImageCodec.Load(path);
         var format = Abilities.Writable.Contains(input.Format) ? input.Format : ImageCodec.HasAlpha(image) ? "png" : "jpeg";
-        var result = Output(path, " (sans métadonnées)", format);
+        var result = Output(path, AppLanguage.Text("suffix.no_metadata"), format);
         ImageCodec.Save(image, result, format, quality: 0.95);
         return result;
     }
@@ -109,7 +111,7 @@ public sealed class WindowsFileConverter
     /// <summary>PDF et images assemblés dans l'ordre du glisser, une page par image.</summary>
     public string MergeIntoPdf(IReadOnlyList<string> paths)
     {
-        if (paths.Count == 0) throw new ConversionException("Aucun fichier à fusionner");
+        if (paths.Count == 0) throw new ConversionException(AppLanguage.Text("error.nothing_to_merge"));
         using var merged = new SharpPdf();
         foreach (var path in paths)
         {
@@ -125,10 +127,10 @@ public sealed class WindowsFileConverter
                     AddImagePage(merged, path);
                     break;
                 default:
-                    throw new ConversionException($"« {Path.GetFileName(path)} » ne peut pas être ajouté à un PDF");
+                    throw new ConversionException(AppLanguage.Text("error.merge_unsupported", ("name", Path.GetFileName(path))));
             }
         }
-        var output = Output(paths[0], paths.Count > 1 ? " (fusion)" : "", "pdf");
+        var output = Output(paths[0], paths.Count > 1 ? AppLanguage.Text("suffix.merged") : "", "pdf");
         merged.Save(output);
         return output;
     }
@@ -184,7 +186,7 @@ internal static class PdfFiles
         }
         catch (Exception error) when (error is not ConversionException)
         {
-            throw new ConversionException($"Impossible d'ouvrir « {Path.GetFileName(path)} » ({error.Message})");
+            throw new ConversionException(AppLanguage.Text("error.open_failed", ("name", Path.GetFileName(path)), ("reason", error.Message)));
         }
     }
 }

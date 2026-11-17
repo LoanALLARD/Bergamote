@@ -1,4 +1,5 @@
 using System.Windows.Media.Imaging;
+using Bergamote.Core;
 using Windows.Data.Pdf;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -17,7 +18,7 @@ internal static class PdfRendering
         }
         catch (Exception error)
         {
-            throw new ConversionException($"Impossible d'ouvrir « {Path.GetFileName(path)} » ({error.Message})");
+            throw new ConversionException(AppLanguage.Text("error.open_failed", ("name", Path.GetFileName(path)), ("reason", error.Message)));
         }
     }
 

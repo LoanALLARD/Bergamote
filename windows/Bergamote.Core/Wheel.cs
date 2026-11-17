@@ -30,7 +30,8 @@ public enum WheelDecision
 
 public static class WheelKindExtensions
 {
-    public static string Title(this WheelKind kind) => kind == WheelKind.Conversion ? "Convertir" : "Outils";
+    public static string Title(this WheelKind kind) =>
+        AppLanguage.Text(kind == WheelKind.Conversion ? "wheel.convert" : "wheel.tools");
 
     public static WheelKind? ShownKind(this WheelDecision decision) => decision switch
     {

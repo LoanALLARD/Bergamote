@@ -90,6 +90,26 @@ public sealed class ConversionTests : IDisposable
     }
 
     [Fact]
+    public void FileNamesAndMessagesFollowTheLanguage()
+    {
+        var photo = MakeImage("photo.png", 400, 300, noise: true);
+        try
+        {
+            AppLanguage.Apply("en");
+            var compressed = Sta(() => converter.Perform(Action(WheelKind.Tools, "compress", photo), [photo])).Single();
+            Assert.Equal(Path.Combine(folder, "photo (compressed).jpeg"), compressed);
+            var missing = Path.Combine(folder, "absent.pdf");
+            File.WriteAllText(missing, "not a pdf");
+            var error = Assert.Throws<ConversionException>(() => Sta(() => converter.Perform(Action(WheelKind.Tools, "strip_metadata", missing), [missing])));
+            Assert.StartsWith("Cannot open “absent.pdf”", error.Message);
+        }
+        finally
+        {
+            AppLanguage.Apply("fr");
+        }
+    }
+
+    [Fact]
     public void StripsMetadataFromImagesAndPdfs()
     {
         var jpeg = MakeImage("vacances.jpg", 40, 30);

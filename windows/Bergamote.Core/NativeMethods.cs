@@ -14,6 +14,21 @@ internal static partial class NativeMethods
     [LibraryImport(Library)]
     internal static partial void bgm_string_free(IntPtr text);
 
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal static partial bool bgm_set_language(string code);
+
+    /// <summary>Chaîne statique : à ne pas libérer.</summary>
+    [LibraryImport(Library)]
+    internal static partial IntPtr bgm_language();
+
+    /// <summary>Chaîne statique : à ne pas libérer.</summary>
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial IntPtr bgm_resolve_language(string preference, string systemLocale);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial IntPtr bgm_text(string key);
+
     [LibraryImport(Library)]
     internal static partial DetectorHandle bgm_detector_new();
 

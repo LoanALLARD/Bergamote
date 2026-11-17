@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Bergamote.Core;
 
 namespace Bergamote.Desktop.Conversion;
 
@@ -22,14 +23,18 @@ internal static class ImageCodec
                                           or System.Runtime.InteropServices.COMException)
         {
             var extension = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
-            var hint = extension switch
+            // Noms des extensions tels qu'ils apparaissent dans le Microsoft Store.
+            var missing = extension switch
             {
-                "heic" or "heif" => " : installez « Extensions d'image HEIF » depuis le Microsoft Store",
-                "avif" => " : installez « Extension AV1 » depuis le Microsoft Store",
-                "webp" => " : installez « Extensions d'image Web » depuis le Microsoft Store",
-                _ => "",
+                "heic" or "heif" => "HEIF Image Extensions",
+                "avif" => "AV1 Video Extension",
+                "webp" => "WebP Image Extensions",
+                _ => null,
             };
-            throw new ConversionException($"Impossible de lire « {Path.GetFileName(path)} »{hint}");
+            var name = Path.GetFileName(path);
+            throw new ConversionException(missing is null
+                ? AppLanguage.Text("error.unreadable", ("name", name))
+                : AppLanguage.Text("error.install_extension", ("name", name), ("extension", missing)));
         }
     }
 
@@ -58,7 +63,7 @@ internal static class ImageCodec
             "tiff" => new TiffBitmapEncoder { Compression = TiffCompressOption.Lzw },
             "gif" => new GifBitmapEncoder(),
             "bmp" => new BmpBitmapEncoder(),
-            _ => throw new ConversionException($"Windows ne sait pas écrire le format {format.ToUpperInvariant()}"),
+            _ => throw new ConversionException(AppLanguage.Text("error.unsupported_output", ("system", "Windows"), ("format", format.ToUpperInvariant()))),
         };
         encoder.Frames.Add(BitmapFrame.Create(image));
         encoder.Save(stream);

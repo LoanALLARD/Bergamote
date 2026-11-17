@@ -1,3 +1,4 @@
+using Bergamote.Core;
 using Microsoft.Win32;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
@@ -16,12 +17,18 @@ internal sealed class TrayIcon : IDisposable
     private readonly Forms.ToolStripMenuItem conversionHint = new() { Enabled = false };
     private readonly Forms.ToolStripMenuItem toolsHint = new() { Enabled = false };
     private readonly Forms.ToolStripMenuItem resultItem = new() { Enabled = false, Visible = false };
+    private readonly Forms.ToolStripMenuItem hintItem = new() { Enabled = false };
+    private readonly Forms.ToolStripMenuItem settingsItem = new();
+    private readonly Forms.ToolStripMenuItem quitItem = new();
+    private string? lastResult;
     private readonly Drawing.Icon image;
 
     public TrayIcon(AppSettings settings, WheelController controller, Action openSettings, Action quit)
     {
         this.settings = settings;
-        enabledItem = new Forms.ToolStripMenuItem("Activer le camembert") { CheckOnClick = true, Checked = settings.Enabled };
+        enabledItem = new Forms.ToolStripMenuItem { CheckOnClick = true, Checked = settings.Enabled };
+        settingsItem.Click += (_, _) => openSettings();
+        quitItem.Click += (_, _) => quit();
         enabledItem.CheckedChanged += (_, _) =>
         {
             if (settings.Enabled == enabledItem.Checked) return;
@@ -37,13 +44,13 @@ internal sealed class TrayIcon : IDisposable
             title,
             enabledItem,
             new Forms.ToolStripSeparator(),
-            new Forms.ToolStripMenuItem("Glissez des fichiers, puis tapez :") { Enabled = false },
+            hintItem,
             conversionHint,
             toolsHint,
             resultItem,
             new Forms.ToolStripSeparator(),
-            new Forms.ToolStripMenuItem("Réglages…", null, (_, _) => openSettings()),
-            new Forms.ToolStripMenuItem("Quitter", null, (_, _) => quit()),
+            settingsItem,
+            quitItem,
         ]);
 
         image = MakeIcon();
@@ -53,23 +60,31 @@ internal sealed class TrayIcon : IDisposable
         settings.Changed += Refresh;
         controller.ResultChanged += result =>
         {
-            resultItem.Text = $"Dernier résultat : {result}";
-            resultItem.Visible = true;
+            lastResult = result;
+            Refresh();
         };
         Refresh();
     }
 
     public void ShowWelcome() => icon.ShowBalloonTip(
-        6000, "Bergamote est prêt",
-        $"Glissez des fichiers depuis l'Explorateur, puis tapez {GlobalInput.Name(settings.ConversionKey)} pour convertir "
-        + $"ou {GlobalInput.Name(settings.ToolsKey)} pour les outils.",
+        6000, AppLanguage.Text("welcome.title"),
+        AppLanguage.Text(
+            "welcome.body", ("source", AppLanguage.Text("source.explorer")),
+            ("convert", GlobalInput.Name(settings.ConversionKey)), ("tools", GlobalInput.Name(settings.ToolsKey))),
         Forms.ToolTipIcon.None);
 
+    /// <summary>Remet le menu à jour : réglages, dernier résultat, langue.</summary>
     private void Refresh()
     {
         enabledItem.Checked = settings.Enabled;
-        conversionHint.Text = $"    {GlobalInput.Name(settings.ConversionKey)} : convertir (PNG, JPEG, PDF…)";
-        toolsHint.Text = $"    {GlobalInput.Name(settings.ToolsKey)} : outils (compresser, anonymiser…)";
+        enabledItem.Text = AppLanguage.Text("settings.enable");
+        hintItem.Text = AppLanguage.Text("menu.tap_hint");
+        conversionHint.Text = "    " + AppLanguage.Text("menu.convert_hint", ("key", GlobalInput.Name(settings.ConversionKey)));
+        toolsHint.Text = "    " + AppLanguage.Text("menu.tools_hint", ("key", GlobalInput.Name(settings.ToolsKey)));
+        resultItem.Text = AppLanguage.Text("menu.last_result", ("result", lastResult ?? ""));
+        resultItem.Visible = lastResult is not null;
+        settingsItem.Text = AppLanguage.Text("menu.settings");
+        quitItem.Text = AppLanguage.Text("menu.quit");
     }
 
     /// <summary>Un camembert monochrome, blanc sur barre des tâches sombre, noir sur claire.</summary>

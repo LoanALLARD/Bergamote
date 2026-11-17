@@ -32,9 +32,12 @@ internal static class TextExtraction
             FileCategory.Pdf => PdfText(path),
             FileCategory.Image => Ocr.Recognize(ImageCodec.Load(path)),
             FileCategory.Text => DocumentText(path, input.Format),
-            _ => throw new ConversionException($"Impossible de lire le texte de « {Path.GetFileName(path)} »"),
+            _ => throw Unreadable(path),
         };
     }
+
+    private static ConversionException Unreadable(string path) =>
+        new(AppLanguage.Text("error.unreadable", ("name", Path.GetFileName(path))));
 
     private static string PdfText(string path)
     {
@@ -45,7 +48,7 @@ internal static class TextExtraction
         }
         catch (Exception error)
         {
-            throw new ConversionException($"Impossible d'ouvrir « {Path.GetFileName(path)} » ({error.Message})");
+            throw new ConversionException(AppLanguage.Text("error.open_failed", ("name", Path.GetFileName(path)), ("reason", error.Message)));
         }
         using (document)
         {
@@ -74,8 +77,8 @@ internal static class TextExtraction
         "rtf" => RtfText(path),
         "docx" => ZipXmlText(path, "word/document.xml", Word.Paragraph, Word.Text, Word.Breaks, Word.Tabs, space: null),
         "odt" => ZipXmlText(path, "content.xml", OpenDocument.Paragraphs, null, OpenDocument.Breaks, OpenDocument.Tabs, OpenDocument.Space),
-        "doc" => throw new ConversionException("Les documents Word 97-2003 (.doc) ne sont pas pris en charge : enregistrez-les en .docx"),
-        _ => throw new ConversionException($"Impossible de lire le texte de « {Path.GetFileName(path)} »"),
+        "doc" => throw new ConversionException(AppLanguage.Text("error.doc_unsupported")),
+        _ => throw Unreadable(path),
     };
 
     /// <summary>RTF lu par WPF (fil STA requis, fourni par <see cref="StaTask"/>).</summary>
@@ -113,7 +116,7 @@ internal static class TextExtraction
         }
         catch (Exception error) when (error is InvalidDataException or System.Xml.XmlException)
         {
-            throw new ConversionException($"Impossible de lire « {Path.GetFileName(path)} »");
+            throw Unreadable(path);
         }
     }
 
@@ -144,7 +147,7 @@ internal static class Ocr
     public static string Recognize(BitmapSource image)
     {
         var engine = OcrEngine.TryCreateFromUserProfileLanguages()
-            ?? throw new ConversionException("Aucune langue de reconnaissance de texte n'est installée (Paramètres › Heure et langue)");
+            ?? throw new ConversionException(AppLanguage.Text("error.no_ocr_language"));
         var largest = Math.Max(image.PixelWidth, image.PixelHeight);
         if (largest > OcrEngine.MaxImageDimension) image = ImageCodec.Resize(image, (int)OcrEngine.MaxImageDimension);
         using var bitmap = ToSoftwareBitmap(image);

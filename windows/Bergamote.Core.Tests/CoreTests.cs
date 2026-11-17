@@ -1,5 +1,8 @@
 using Bergamote.Core;
 
+// La langue est un état global du cœur : les tests ne tournent pas en parallèle.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace Bergamote.Core.Tests;
 
 /// <summary>Le cœur vu depuis .NET : mêmes réponses que pour l'app Mac.</summary>
@@ -162,4 +165,39 @@ public class TextAndFileTests
 
     [Fact]
     public void VersionIsReported() => Assert.Matches(@"^\d+\.\d+\.\d+$", CoreLibrary.Version);
+}
+
+public class LanguageTests
+{
+    [Fact]
+    public void PreferenceAndSystemLocaleResolveToALanguage()
+    {
+        Assert.Equal("fr", AppLanguage.Resolve("system", "fr-CA"));
+        Assert.Equal("en", AppLanguage.Resolve("system", "de-DE"));
+        Assert.Equal("en", AppLanguage.Resolve("en", "fr-FR"));
+    }
+
+    [Fact]
+    public void TextsAndSlicesFollowTheLanguage()
+    {
+        try
+        {
+            AppLanguage.Apply("en");
+            Assert.Equal("en", AppLanguage.Current);
+            Assert.Equal("Quit", AppLanguage.Text("menu.quit"));
+            Assert.Equal("Cannot read “a.png”", AppLanguage.Text("error.unreadable", ("name", "a.png")));
+            Assert.Equal("Tools", WheelKind.Tools.Title());
+            Assert.Equal("2 files created next to the originals", WheelTexts.Created(2));
+            Assert.Equal("3 PNG · 39.7 MB", WheelTexts.Files(["a.png", "b.png", "c.png"], 39_700_000));
+            var tools = FileActionCatalog.Actions(WheelKind.Tools, [new FileInput(FileCategory.Pdf, "pdf")], new PlatformAbilities([], null));
+            Assert.Equal(["Compress", "Anonymize", "Searchable", "Text"], tools.Select(a => a.Title));
+            Assert.Equal("compress", tools[0].Id);
+        }
+        finally
+        {
+            AppLanguage.Apply("fr");
+        }
+        Assert.Equal("Quitter", AppLanguage.Text("menu.quit"));
+        Assert.Equal("clé.inconnue", AppLanguage.Text("clé.inconnue"));
+    }
 }
