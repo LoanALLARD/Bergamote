@@ -118,7 +118,7 @@ Changing the language applies immediately, without restarting.
 | Windows app | On a Windows runner: start-up, simulated drag, Shift, drop on a slice, converted file |
 | Linux conversions | `cargo test` in `linux/` (pure Rust, any OS) |
 | Linux app | Docker with Xvfb: gesture, both wheels, drops from a test source and from a real file manager, settings, start at login, language switch |
-| Mac app | Swift tests, snapshots of every screen in both languages; the gesture itself is checked by hand |
+| Mac app | Swift tests, snapshots of every screen in both languages. No automated drag: simulating input on macOS needs an accessibility permission a CI runner does not have |
 
 ## 6. Out of scope for now
 
