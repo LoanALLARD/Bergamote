@@ -91,6 +91,58 @@ try {
     Check ((Test-Path $converted) -and ((Get-Item $converted).Length -gt 0)) "photo.jpeg is created next to the original"
     Check (Test-Path $photo) "the original is still there"
 
+    # Launching the app again while it runs opens its settings window.
+    Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+    $automation = [System.Windows.Automation.AutomationElement]
+    function Find-Window($title) {
+        $condition = New-Object System.Windows.Automation.PropertyCondition($automation::NameProperty, $title)
+        $deadline = (Get-Date).AddSeconds(15)
+        do {
+            $window = $automation::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $condition)
+            if ($window) { return $window }
+            Start-Sleep -Milliseconds 300
+        } while ((Get-Date) -lt $deadline)
+        return $null
+    }
+    function Find-Inside($parent, $name) {
+        $condition = New-Object System.Windows.Automation.PropertyCondition($automation::NameProperty, $name)
+        return $parent.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    }
+    Start-Process -FilePath $exe -Wait
+    $window = Find-Window "Bergamote Settings"
+    Check ($null -ne $window) "launching the app again opens its settings"
+    if ($window) {
+        # Start at login: ticking the box writes the Run entry of the user, unticking removes it.
+        $run = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+        $box = Find-Inside $window "Start Bergamote at login"
+        $toggle = $box.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+        $toggle.Toggle()
+        Start-Sleep -Milliseconds 500
+        $entry = (Get-ItemProperty -Path $run -ErrorAction SilentlyContinue).Bergamote
+        Check ($entry -and $entry.Contains("Bergamote.exe")) "ticking 'Start at login' registers the app to run at sign-in"
+        $toggle.Toggle()
+        Start-Sleep -Milliseconds 500
+        $entry = (Get-ItemProperty -Path $run -ErrorAction SilentlyContinue).Bergamote
+        Check (-not $entry) "unticking it removes the registration"
+
+        # Language: choosing French rebuilds the window in French, at once.
+        # The language list is the last one of the window; its items exist once it has been opened.
+        $isList = New-Object System.Windows.Automation.PropertyCondition($automation::ControlTypeProperty, [System.Windows.Automation.ControlType]::ComboBox)
+        $lists = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, $isList)
+        $item = $null
+        if ($lists.Count -gt 0) {
+            $list = $lists[$lists.Count - 1]
+            $list.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
+            Start-Sleep -Milliseconds 600
+            $item = Find-Inside $list "Français"
+        }
+        if ($item) { $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+        $french = Find-Window "Réglages de Bergamote"
+        Check ($null -ne $french) "choosing French switches the settings window to French at once"
+        Check ((Test-Path $settings) -and ((Get-Content $settings -Raw) -match '"Language":\s*"fr"')) "the language choice is saved"
+        if ($french) { $french.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close() }
+    }
+
     Check (-not $app.HasExited) "the app is still running"
     $logged = (Test-Path $errors) -and ((Get-Item $errors).Length -gt 0)
     Check (-not $logged) "no error was logged"

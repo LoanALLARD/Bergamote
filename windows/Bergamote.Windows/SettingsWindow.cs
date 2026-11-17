@@ -31,7 +31,7 @@ internal sealed class SettingsWindow : Window
         var panel = new StackPanel { Margin = new Thickness(22), Width = 440 };
 
         var enabled = new CheckBox { Content = AppLanguage.Text("settings.enable"), IsChecked = settings.Enabled, Margin = new Thickness(0, 0, 0, 14) };
-        enabled.Click += (_, _) => Update(() => settings.Enabled = enabled.IsChecked == true);
+        OnToggled(enabled, () => Update(() => settings.Enabled = enabled.IsChecked == true));
         panel.Children.Add(enabled);
 
         var keyNames = Keys.Select(GlobalInput.Name).ToList();
@@ -48,7 +48,7 @@ internal sealed class SettingsWindow : Window
         panel.Children.Add(conflict);
 
         var sound = new CheckBox { Content = AppLanguage.Text("settings.sound"), IsChecked = settings.Sound, VerticalAlignment = VerticalAlignment.Center };
-        sound.Click += (_, _) => Update(() => settings.Sound = sound.IsChecked == true);
+        OnToggled(sound, () => Update(() => settings.Sound = sound.IsChecked == true));
         var listen = new Button { Content = AppLanguage.Text("settings.listen"), Padding = new Thickness(12, 2, 12, 2), HorizontalAlignment = HorizontalAlignment.Right };
         listen.Click += async (_, _) =>
         {
@@ -63,7 +63,7 @@ internal sealed class SettingsWindow : Window
         panel.Children.Add(soundRow);
 
         var startup = new CheckBox { Content = AppLanguage.Text("settings.login"), IsChecked = AppSettings.LaunchAtLogin, Margin = new Thickness(0, 0, 0, 12) };
-        startup.Click += (_, _) => AppSettings.LaunchAtLogin = startup.IsChecked == true;
+        OnToggled(startup, () => AppSettings.LaunchAtLogin = startup.IsChecked == true);
         panel.Children.Add(startup);
 
         // Langue : celle du système, puis les langues du cœur, sous leur propre nom.
@@ -84,6 +84,16 @@ internal sealed class SettingsWindow : Window
 
         Content = panel;
         RefreshConflict();
+    }
+
+    /// <summary>
+    /// Réagit au changement d'état, quelle qu'en soit l'origine : un clic, le clavier, ou un outil
+    /// d'accessibilité (qui change l'état sans cliquer).
+    /// </summary>
+    private static void OnToggled(CheckBox box, Action changed)
+    {
+        box.Checked += (_, _) => changed();
+        box.Unchecked += (_, _) => changed();
     }
 
     private static TextBlock Note(string text, Thickness margin) =>

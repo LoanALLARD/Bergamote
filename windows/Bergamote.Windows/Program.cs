@@ -9,16 +9,22 @@ public static class Program
     [STAThread]
     public static void Main()
     {
-        // Une seule instance par session.
+        // Une seule instance par session. Relancer l'app pendant qu'elle tourne ouvre ses réglages :
+        // c'est le moyen de la retrouver si l'icône de la zone de notification est masquée.
         using var instance = new Mutex(initiallyOwned: true, @"Local\Bergamote.Desktop", out var isFirst);
-        if (!isFirst) return;
+        using var showSettings = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Bergamote.Desktop.ShowSettings");
+        if (!isFirst)
+        {
+            showSettings.Set();
+            return;
+        }
         System.Windows.Forms.Application.EnableVisualStyles();
-        new BergamoteApp().Run();
+        new BergamoteApp(showSettings).Run();
     }
 }
 
 /// <summary>Pas de fenêtre principale : l'app vit dans la zone de notification.</summary>
-internal sealed class BergamoteApp : Application
+internal sealed class BergamoteApp(EventWaitHandle showSettings) : Application
 {
     private AppSettings settings = null!;
     private WheelController controller = null!;
@@ -40,6 +46,13 @@ internal sealed class BergamoteApp : Application
         tray = new TrayIcon(settings, controller, OpenSettings, Shutdown);
         controller.Start();
         if (settings.IsFirstLaunch) tray.ShowWelcome();
+
+        // Une relance de l'app signale cet événement : on ouvre les réglages.
+        new Thread(() =>
+        {
+            while (showSettings.WaitOne()) Dispatcher.BeginInvoke(OpenSettings);
+        })
+        { IsBackground = true, Name = "Bergamote relaunch" }.Start();
     }
 
     private void OpenSettings()
