@@ -1,0 +1,89 @@
+# Builds, tests and packages the core and the three apps. Called by ci.yml and release.yml.
+name: Build
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  core:
+    name: Shared core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: .github/scripts/run.sh cargo test --manifest-path core/Cargo.toml
+      - name: Lint
+        run: .github/scripts/run.sh cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings
+
+  mac:
+    name: Mac app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add the Rust targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Build the core
+        run: .github/scripts/run.sh mac/scripts/build-core.sh
+      - name: Test
+        run: .github/scripts/run.sh swift test --package-path mac
+      - name: Package
+        run: .github/scripts/run.sh mac/scripts/package-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bergamote-mac
+          path: mac/build/Bergamote-*.zip
+          if-no-files-found: error
+
+  windows:
+    name: Windows app
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Test
+        run: .github/scripts/run.sh dotnet test windows/Bergamote.sln -c Release
+      - name: Publish
+        run: >-
+          .github/scripts/run.sh dotnet publish windows/Bergamote.Windows -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true -o windows/publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bergamote-windows-x64
+          path: windows/publish/Bergamote.exe
+          if-no-files-found: error
+
+  linux:
+    name: Linux app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The same image as on a developer's machine: Ubuntu, GTK 4, Xvfb, Tesseract.
+      - name: Build the test image
+        run: .github/scripts/run.sh docker build -q -t bergamote-linux-dev -f linux/scripts/Dockerfile.dev linux/scripts
+      - name: Test
+        run: .github/scripts/run.sh linux/scripts/docker.sh cargo test
+      - name: Lint
+        run: .github/scripts/run.sh linux/scripts/docker.sh cargo clippy --all-targets -- -D warnings
+      - name: Drag and drop under Xvfb
+        run: .github/scripts/run.sh linux/scripts/docker.sh scripts/smoke-test.sh
+      - name: Package
+        run: .github/scripts/run.sh linux/scripts/docker.sh scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-smoke-test
+          path: linux/dist/smoke/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bergamote-linux
+          path: |
+            linux/dist/*.deb
+            linux/dist/*.tar.gz
+          if-no-files-found: error
