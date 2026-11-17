@@ -6,6 +6,8 @@
 	<string>fr</string>
 	<key>CFBundleDisplayName</key>
 	<string>Bergamote</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleExecutable</key>
 	<string>Bergamote</string>
 	<key>CFBundleIdentifier</key>

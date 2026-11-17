@@ -54,7 +54,7 @@ impl ksni::Tray for Icon {
 
     /// Repli si l'icône du thème n'est pas installée (exécution depuis les sources).
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
-        vec![pie_icon(32)]
+        vec![logo_icon(32)]
     }
 
     fn activate(&mut self, _x: i32, _y: i32) {
@@ -102,31 +102,74 @@ impl Tray {
     }
 }
 
-/// Le camembert de l'icône, en ARGB : un disque citron et sa part bleue, comme le logo.
-fn pie_icon(size: i32) -> ksni::Icon {
+/// Le logo en ARGB, « le B en deux parts » sur son carré clair arrondi (le même dessin que
+/// data/bergamote.svg), pour les bureaux qui ne trouvent pas l'icône du thème.
+fn logo_icon(size: i32) -> ksni::Icon {
+    const GROUND: [f64; 3] = [248.0, 248.0, 243.0];
+    const STEM: [f64; 3] = [29.0, 42.0, 18.0];
+    const BLUE: [f64; 3] = [47.0, 111.0, 214.0];
+    const CITRON: [f64; 3] = [195.0, 207.0, 58.0];
+
+    /// Couleur du logo en un point du carré de 100 unités, ou `None` hors du carré arrondi.
+    fn color_at(x: f64, y: f64) -> Option<[f64; 3]> {
+        // Carré arrondi : rayon 22.
+        let (dx, dy) = ((x - 50.0).abs() - 28.0, (y - 50.0).abs() - 28.0);
+        if dx > 22.0 || dy > 22.0 || (dx > 0.0 && dy > 0.0 && dx * dx + dy * dy > 22.0 * 22.0) {
+            return None;
+        }
+        // Le B, dessiné à 72 % au centre du carré (voir brand/logo.svg).
+        let (u, v) = ((x - 13.64) / 0.72, (y - 17.6) / 0.72);
+        let in_bowl = |top: f64, bottom: f64, flat: f64| {
+            let radius = (bottom - top) / 2.0;
+            let centre = top + radius;
+            v >= top && v <= bottom && u >= 46.0 && (u <= flat || (u - flat).powi(2) + (v - centre).powi(2) <= radius * radius)
+        };
+        Some(if (26.0..=41.0).contains(&u) && (20.0..=86.0).contains(&v) {
+            STEM
+        } else if in_bowl(48.0, 86.0, 56.0) {
+            CITRON
+        } else if in_bowl(20.0, 52.0, 53.0) {
+            BLUE
+        } else {
+            GROUND
+        })
+    }
+
     let mut data = Vec::with_capacity((size * size * 4) as usize);
-    let centre = f64::from(size) / 2.0;
-    let radius = centre - 1.5;
+    let unit = 100.0 / f64::from(size);
     for y in 0..size {
         for x in 0..size {
-            // Suréchantillonnage 4 × 4 pour un bord lisse.
-            let (mut alpha, mut red, mut green, mut blue) = (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64);
+            // Suréchantillonnage 4 × 4 pour des bords lisses.
+            let (mut covered, mut sum) = (0.0_f64, [0.0_f64; 3]);
             for sample in 0..16 {
-                let dx = f64::from(x) + (f64::from(sample % 4) + 0.5) / 4.0 - centre;
-                let dy = f64::from(y) + (f64::from(sample / 4) + 0.5) / 4.0 - centre;
-                if dx * dx + dy * dy <= radius * radius {
-                    // Angle depuis le haut, sens horaire : la part bleue occupe le premier sixième.
-                    let angle = dx.atan2(-dy).rem_euclid(std::f64::consts::TAU);
-                    let (r, g, b) = if angle < std::f64::consts::TAU / 6.0 { (47.0, 111.0, 214.0) } else { (195.0, 207.0, 58.0) };
-                    alpha += 1.0;
-                    red += r;
-                    green += g;
-                    blue += b;
+                let px = (f64::from(x) + (f64::from(sample % 4) + 0.5) / 4.0) * unit;
+                let py = (f64::from(y) + (f64::from(sample / 4) + 0.5) / 4.0) * unit;
+                if let Some(color) = color_at(px, py) {
+                    covered += 1.0;
+                    for (total, channel) in sum.iter_mut().zip(color) {
+                        *total += channel;
+                    }
                 }
             }
-            let coverage = alpha.max(1.0);
-            data.extend([(alpha / 16.0 * 255.0) as u8, (red / coverage) as u8, (green / coverage) as u8, (blue / coverage) as u8]);
+            let coverage = covered.max(1.0);
+            data.extend([(covered / 16.0 * 255.0) as u8, (sum[0] / coverage) as u8, (sum[1] / coverage) as u8, (sum[2] / coverage) as u8]);
         }
     }
     ksni::Icon { width: size, height: size, data }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn logo_icon_draws_the_b_on_its_rounded_ground() {
+        let icon = logo_icon(100);
+        let pixel = |x: usize, y: usize| -> [u8; 4] { icon.data[(y * 100 + x) * 4..(y * 100 + x) * 4 + 4].try_into().unwrap() };
+        assert_eq!(pixel(0, 0)[0], 0, "coin transparent");
+        assert_eq!(pixel(38, 50), [255, 29, 42, 18], "le fût");
+        assert_eq!(pixel(57, 35), [255, 47, 111, 214], "la panse haute, bleue");
+        assert_eq!(pixel(62, 65), [255, 195, 207, 58], "la panse basse, citron");
+        assert_eq!(pixel(85, 50), [255, 248, 248, 243], "le fond clair");
+    }
 }

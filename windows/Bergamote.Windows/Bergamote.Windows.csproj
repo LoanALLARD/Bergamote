@@ -11,6 +11,8 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Le logo, généré par brand/make-icons.swift. -->
+    <ApplicationIcon>Bergamote.ico</ApplicationIcon>
     <!-- La prise en charge des écrans haute résolution passe par le manifeste, comme pour toute app
          WPF ; l'avertissement vise les apps Windows Forms. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>

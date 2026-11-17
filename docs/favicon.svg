@@ -1,5 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="28" fill="#c3cf3a"/>
-  <path d="M32 32 L32 4 A28 28 0 0 1 56.25 18 Z" fill="#2f6fd6"/>
-  <circle cx="32" cy="32" r="10" fill="#1d2a12" opacity="0.18"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Bergamote">
+  <rect x="1" y="1" width="98" height="98" rx="22" fill="#F8F8F3" stroke="#1D2A12" stroke-opacity="0.1" stroke-width="1"/>
+  <g transform="translate(13.64 17.6) scale(0.72)">
+    <rect x="26" y="20" width="15" height="66" rx="4" fill="#1D2A12"/>
+    <path d="M46 20h7a16 16 0 0 1 0 32h-7z" fill="#2F6FD6"/>
+    <path d="M46 48h10a19 19 0 0 1 0 38H46z" fill="#C3CF3A"/>
+    <path d="M33 17c-3-8 3-13 10-13 1 7-2 12-10 13z" fill="#C3CF3A"/>
+  </g>
 </svg>

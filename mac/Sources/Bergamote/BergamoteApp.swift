@@ -16,8 +16,10 @@ struct BergamoteApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("Bergamote", systemImage: "chart.pie") {
+        MenuBarExtra {
             MenuBarPanel(model: appDelegate.radialMenu.model)
+        } label: {
+            Image(nsImage: BrandMark.menuBarImage)
         }
         .menuBarExtraStyle(.window)
 

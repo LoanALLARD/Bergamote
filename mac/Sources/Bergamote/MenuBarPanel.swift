@@ -15,7 +15,7 @@ struct MenuBarPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "chart.pie.fill").foregroundStyle(.tint)
+                Image(nsImage: BrandMark.coloredImage(size: 22))
                 Text("Bergamote").font(.headline)
                 Spacer()
                 Toggle(L("menu.enable"), isOn: $isEnabled)

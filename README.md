@@ -1,4 +1,10 @@
 <p align="center">
+  <img src=".github/assets/logo.svg" alt="Bergamote logo" width="96">
+</p>
+
+<h1 align="center">Bergamote</h1>
+
+<p align="center">
   <img src=".github/assets/wheel-convert.png" alt="Bergamote's conversion wheel" width="300">
 </p>
 
@@ -119,7 +125,7 @@ x64; or a Linux desktop with GTK 4 and an X11 session.
 3. Open it. Release builds are not notarized yet, so the first time macOS may refuse to open the
    app: right-click it and choose **Open**, or go to **System Settings › Privacy & Security** and
    click **Open Anyway**.
-4. A pie icon appears in the menu bar. The first time the wheel saves a result, macOS asks you to
+4. The Bergamote icon appears in the menu bar. The first time the wheel saves a result, macOS asks you to
    allow a folder: choose your **home folder** once and every folder inside it is covered. You can
    revoke it in Settings.
 
@@ -129,7 +135,7 @@ To start Bergamote with your Mac, turn on **Start Bergamote at login** in Settin
 
 Each build of the `main` branch produces a self-contained `Bergamote.exe` (no .NET install needed),
 available from the **Bergamote-windows-x64** artifact of the latest
-[CI run](https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml). Run it: a pie icon
+[CI run](https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml). Run it: the Bergamote icon
 appears in the notification area. The executable is not signed yet, so SmartScreen may ask you to
 confirm with **More info › Run anyway**. Starting with Windows can be turned on in Settings.
 
@@ -147,7 +153,7 @@ sudo apt install ./bergamote_1.0.0_amd64.deb     # Debian and Ubuntu
 tar xzf bergamote-1.0.0-linux-x86_64.tar.gz && bergamote-1.0.0-linux-x86_64/install.sh   # elsewhere, into ~/.local
 ```
 
-Launch **Bergamote** from your applications menu: its settings open, and a pie icon appears in the
+Launch **Bergamote** from your applications menu: its settings open, and its icon appears in the
 tray on desktops that have one (KDE, Xfce, Cinnamon, GNOME with the AppIndicator extension).
 Launching it again reopens the settings.
 
@@ -193,7 +199,7 @@ cargo run --release --manifest-path linux/Cargo.toml
 
 ## Quick start
 
-1. Launch Bergamote. Its pie icon appears in the menu bar (the notification area on Windows, the tray on Linux).
+1. Launch Bergamote. Its icon appears in the menu bar (the notification area on Windows, the tray on Linux).
 2. In Finder, Explorer or your file manager, start dragging an image or a PDF and keep the mouse button down.
 3. Tap **⇧** for the conversion wheel, or **⌘** (**Ctrl** on Windows and Linux) for the tools wheel. You can also hold the key before you start dragging.
 4. Drop the file on a slice. The result appears next to the original.

@@ -23,6 +23,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/Bergamote" "$APP/Contents/MacOS/"
 cp Packaging/Info.plist "$APP/Contents/"
+cp Packaging/AppIcon.icns "$APP/Contents/Resources/"   # généré par brand/make-icons.swift
 
 codesign --force --sign "${SIGN_IDENTITY:--}" --options runtime \
   --entitlements Packaging/Bergamote.entitlements "$APP"

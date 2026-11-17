@@ -82,6 +82,26 @@ struct SnapshotTests {
         }
     }
 
+    /// L'icône de la barre des menus, agrandie huit fois sur fond clair : `menu-bar-icon.png`.
+    @Test func renderMenuBarIcon() throws {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let side = 144
+        let bitmap = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: side, pixelsHigh: side, bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        NSColor.white.setFill()
+        NSRect(x: 0, y: 0, width: side, height: side).fill()
+        BrandMark.menuBarImage.draw(in: NSRect(x: 0, y: 0, width: side, height: side))
+        NSGraphicsContext.restoreGraphicsState()
+        try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("menu-bar-icon.png"))
+        // Le fût et les deux panses sont bien dessinés : du noir à gauche et à droite, du blanc dans un coin.
+        #expect(bitmap.colorAt(x: 48, y: 72)?.brightnessComponent ?? 1 < 0.2)
+        #expect(bitmap.colorAt(x: 90, y: 100)?.brightnessComponent ?? 1 < 0.2)
+        #expect(bitmap.colorAt(x: 4, y: 4)?.brightnessComponent ?? 0 > 0.9)
+    }
+
     /// Trois PNG et quatre PDF d'une page, pour des résumés réalistes au centre du camembert.
     private func sampleFiles() throws -> [URL] {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("bergamote-snapshot-files-\(UUID().uuidString)")

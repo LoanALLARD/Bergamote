@@ -87,7 +87,10 @@ internal sealed class TrayIcon : IDisposable
         quitItem.Text = AppLanguage.Text("menu.quit");
     }
 
-    /// <summary>Un camembert monochrome, blanc sur barre des tâches sombre, noir sur claire.</summary>
+    /// <summary>
+    /// Le logo, « le B en deux parts », d'une seule couleur : blanc sur barre des tâches sombre,
+    /// noir sur claire. Même tracé que brand/mark.svg, dans un repère de 100 unités.
+    /// </summary>
     private static Drawing.Icon MakeIcon()
     {
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
@@ -99,8 +102,13 @@ internal sealed class TrayIcon : IDisposable
         using (var brush = new Drawing.SolidBrush(color))
         {
             graphics.SmoothingMode = Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            graphics.FillPie(brush, 3, 5, 24, 24, -45, 270);   // le camembert, une part en moins
-            graphics.FillPie(brush, 6, 1, 24, 24, -90, 45);    // la part détachée
+            graphics.ScaleTransform(0.32f, 0.32f);
+            graphics.TranslateTransform(1, -3);
+            graphics.FillRectangle(brush, 26, 20, 15, 66);                 // le fût
+            graphics.FillRectangle(brush, 46, 20, 7.5f, 28);               // la panse haute…
+            graphics.FillPie(brush, 39, 20, 28, 28, -90, 180);             // …et son demi-disque
+            graphics.FillRectangle(brush, 46, 54, 10.5f, 32);              // la panse basse
+            graphics.FillPie(brush, 40, 54, 32, 32, -90, 180);
         }
         var handle = bitmap.GetHicon();
         try
