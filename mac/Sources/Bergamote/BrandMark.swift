@@ -6,8 +6,9 @@ import AppKit
 enum BrandMark {
     /// Version d'une seule couleur pour la barre des menus : macOS la teinte selon le thème.
     /// Sans la feuille, et les deux panses séparées, pour rester lisible en 18 points.
-    static let menuBarImage: NSImage = {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { bounds in
+    @MainActor static let menuBarImage: NSImage = {
+        // Le dessin peut être demandé par AppKit hors du fil principal : la fermeture n'y est pas liée.
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { @Sendable bounds in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
             context.scaleBy(x: bounds.width / 100, y: bounds.height / 100)
             context.translateBy(x: 1, y: -3)
@@ -25,7 +26,7 @@ enum BrandMark {
 
     /// Version en couleurs, pour l'en-tête du panneau.
     static func coloredImage(size: CGFloat) -> NSImage {
-        NSImage(size: NSSize(width: size, height: size), flipped: true) { bounds in
+        NSImage(size: NSSize(width: size, height: size), flipped: true) { @Sendable bounds in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
             context.scaleBy(x: bounds.width / 100, y: bounds.height / 100)
             context.translateBy(x: 0, y: 5)
