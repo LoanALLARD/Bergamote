@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use bergamote_core::catalog::{self, Action};
 use bergamote_core::detector::WheelKind;
 use bergamote_core::i18n::Language;
-use bergamote_linux::convert::{abilities, Converter};
+use bergamote_linux::convert::{abilities, Converter, Tesseract};
 use image::{DynamicImage, Rgb, RgbImage, Rgba, RgbaImage};
 use lopdf::{dictionary, Document, Object, Stream};
 
@@ -104,8 +104,8 @@ fn converts_next_to_the_original_without_overwriting() {
     half_transparent(64, 48).save(&png).unwrap();
     let to_jpeg = action(WheelKind::Conversion, "convert_images:jpeg", &[&png]);
 
-    let first = converter().perform(&to_jpeg, &[png.clone()]).unwrap();
-    let second = converter().perform(&to_jpeg, &[png.clone()]).unwrap();
+    let first = converter().perform(&to_jpeg, std::slice::from_ref(&png)).unwrap();
+    let second = converter().perform(&to_jpeg, std::slice::from_ref(&png)).unwrap();
 
     assert_eq!(first, [folder.path("logo.jpeg")]);
     assert_eq!(second, [folder.path("logo 2.jpeg")]);
@@ -123,7 +123,7 @@ fn writes_every_declared_format() {
     gradient(40, 30).save(&jpeg).unwrap();
     for format in ["png", "webp", "tiff", "gif", "bmp"] {
         let action = action(WheelKind::Conversion, &format!("convert_images:{format}"), &[&jpeg]);
-        let output = converter().perform(&action, &[jpeg.clone()]).unwrap();
+        let output = converter().perform(&action, std::slice::from_ref(&jpeg)).unwrap();
         assert_eq!(output, [folder.path(&format!("photo.{format}"))]);
         let decoded = image::open(&output[0]).unwrap();
         assert_eq!((decoded.width(), decoded.height()), (40, 30), "{format}");
@@ -135,7 +135,7 @@ fn compresses_large_images_and_skips_useless_results() {
     let folder = Folder::new("compress");
     let photo = folder.path("photo.png");
     noise(3000, 2000).save(&photo).unwrap();
-    let compressed = converter().perform(&action(WheelKind::Tools, "compress", &[&photo]), &[photo.clone()]).unwrap();
+    let compressed = converter().perform(&action(WheelKind::Tools, "compress", &[&photo]), std::slice::from_ref(&photo)).unwrap();
     assert_eq!(compressed, [folder.path("photo (compressé).jpeg")]);
     assert!(fs::metadata(&compressed[0]).unwrap().len() < fs::metadata(&photo).unwrap().len());
     assert_eq!(image::open(&compressed[0]).unwrap().width(), 2560);
@@ -143,7 +143,7 @@ fn compresses_large_images_and_skips_useless_results() {
     // Un PNG minuscule : le JPEG, avec ses en-têtes, serait plus lourd. Rien n'est créé.
     let tiny = folder.path("tiny.png");
     gradient(8, 8).save(&tiny).unwrap();
-    assert!(converter().perform(&action(WheelKind::Tools, "compress", &[&tiny]), &[tiny.clone()]).unwrap().is_empty());
+    assert!(converter().perform(&action(WheelKind::Tools, "compress", &[&tiny]), std::slice::from_ref(&tiny)).unwrap().is_empty());
     assert!(!folder.path("tiny (compressé).jpeg").exists());
 }
 
@@ -153,7 +153,7 @@ fn file_suffixes_follow_the_language() {
     let photo = folder.path("photo.png");
     noise(400, 300).save(&photo).unwrap();
     let english = Converter { language: Language::English, tesseract: None, ..Converter::default() };
-    let compressed = english.perform(&action(WheelKind::Tools, "compress", &[&photo]), &[photo.clone()]).unwrap();
+    let compressed = english.perform(&action(WheelKind::Tools, "compress", &[&photo]), std::slice::from_ref(&photo)).unwrap();
     assert_eq!(compressed, [folder.path("photo (compressed).jpeg")]);
 }
 
@@ -162,14 +162,14 @@ fn strips_metadata_from_images_and_pdfs() {
     let folder = Folder::new("metadata");
     let jpeg = folder.path("vacances.jpg");
     gradient(40, 30).save(&jpeg).unwrap();
-    let clean = converter().perform(&action(WheelKind::Tools, "strip_metadata", &[&jpeg]), &[jpeg.clone()]).unwrap();
+    let clean = converter().perform(&action(WheelKind::Tools, "strip_metadata", &[&jpeg]), std::slice::from_ref(&jpeg)).unwrap();
     assert_eq!(clean, [folder.path("vacances (sans métadonnées).jpeg")]);
     assert_eq!(image::open(&clean[0]).unwrap().width(), 40);
 
     let pdf = folder.path("rapport.pdf");
     text_pdf(&pdf, 1, Some("Camille Martin"));
     assert!(fs::read(&pdf).unwrap().windows(7).any(|w| w == b"Camille"));
-    let clean = converter().perform(&action(WheelKind::Tools, "strip_metadata", &[&pdf]), &[pdf.clone()]).unwrap();
+    let clean = converter().perform(&action(WheelKind::Tools, "strip_metadata", &[&pdf]), std::slice::from_ref(&pdf)).unwrap();
     assert_eq!(clean, [folder.path("rapport (sans métadonnées).pdf")]);
     let bytes = fs::read(&clean[0]).unwrap();
     assert!(!bytes.windows(7).any(|w| w == b"Camille"), "l'auteur a disparu");
@@ -214,7 +214,7 @@ fn renders_each_pdf_page_as_an_image() {
     let folder = Folder::new("render");
     let pdf = folder.path("plan.pdf");
     text_pdf(&pdf, 2, None);
-    let pages = converter().perform(&action(WheelKind::Conversion, "render_pages:png", &[&pdf]), &[pdf.clone()]).unwrap();
+    let pages = converter().perform(&action(WheelKind::Conversion, "render_pages:png", &[&pdf]), std::slice::from_ref(&pdf)).unwrap();
 
     assert_eq!(pages, [folder.path("plan-p1.png"), folder.path("plan-p2.png")]);
     let page = image::open(&pages[0]).unwrap().to_rgb8();
@@ -224,7 +224,7 @@ fn renders_each_pdf_page_as_an_image() {
 
     let single = folder.path("page.pdf");
     text_pdf(&single, 1, None);
-    let pages = converter().perform(&action(WheelKind::Conversion, "render_pages:jpeg", &[&single]), &[single.clone()]).unwrap();
+    let pages = converter().perform(&action(WheelKind::Conversion, "render_pages:jpeg", &[&single]), std::slice::from_ref(&single)).unwrap();
     assert_eq!(pages, [folder.path("page.jpeg")]);
 }
 
@@ -233,7 +233,7 @@ fn extracts_text_from_pdfs_and_office_documents() {
     let folder = Folder::new("text");
     let pdf = folder.path("lettre.pdf");
     text_pdf(&pdf, 2, None);
-    let output = converter().perform(&action(WheelKind::Conversion, "extract_text", &[&pdf]), &[pdf.clone()]).unwrap();
+    let output = converter().perform(&action(WheelKind::Conversion, "extract_text", &[&pdf]), std::slice::from_ref(&pdf)).unwrap();
     assert_eq!(output, [folder.path("lettre.txt")]);
     let text = fs::read_to_string(&output[0]).unwrap();
     assert!(text.contains("Bonjour Bergamote, page numero 1") && text.contains("page numero 2"), "{text}");
@@ -251,7 +251,7 @@ fn extracts_text_from_pdfs_and_office_documents() {
         .unwrap();
     archive.finish().unwrap();
     let extract = action(WheelKind::Tools, "extract_text", &[&docx]);
-    let output = converter().perform(&extract, &[docx.clone()]).unwrap();
+    let output = converter().perform(&extract, std::slice::from_ref(&docx)).unwrap();
     assert_eq!(fs::read_to_string(&output[0]).unwrap(), "Bonjour\tCamille\nFin");
 
     let odt = folder.path("memo.odt");
@@ -265,12 +265,12 @@ fn extracts_text_from_pdfs_and_office_documents() {
         )
         .unwrap();
     archive.finish().unwrap();
-    let output = converter().perform(&action(WheelKind::Tools, "extract_text", &[&odt]), &[odt.clone()]).unwrap();
+    let output = converter().perform(&action(WheelKind::Tools, "extract_text", &[&odt]), std::slice::from_ref(&odt)).unwrap();
     assert_eq!(fs::read_to_string(&output[0]).unwrap(), "Titre\nUn  deux\ntrois quatre");
 
     let rtf = folder.path("memo.rtf");
     fs::write(&rtf, br"{\rtf1\ansi Premi\'e8re ligne\par Seconde ligne}").unwrap();
-    let output = converter().perform(&action(WheelKind::Tools, "extract_text", &[&rtf]), &[rtf.clone()]).unwrap();
+    let output = converter().perform(&action(WheelKind::Tools, "extract_text", &[&rtf]), std::slice::from_ref(&rtf)).unwrap();
     assert_eq!(fs::read_to_string(&output[0]).unwrap(), "Première ligne\nSeconde ligne");
 }
 
@@ -291,4 +291,43 @@ fn wheel_offers_only_what_this_system_can_do() {
     let text = Action { id: "extract_text".into(), title: "Texte".into(), icon: "extract".into(), operation: catalog::Operation::ExtractText, format: None };
     let error = converter().perform(&text, &[scan]).unwrap_err();
     assert_eq!(error.to_string(), "Installez Tesseract pour reconnaître le texte des images");
+}
+
+/// Avec Tesseract (présent dans le conteneur de développement et sur la CI) : le texte des images
+/// et des pages scannées. Sans lui, ce test ne vérifie rien.
+#[test]
+fn recognizes_text_when_tesseract_is_installed() {
+    let Some(tesseract) = Tesseract::find() else {
+        eprintln!("Tesseract absent : test d'OCR ignoré");
+        return;
+    };
+    let folder = Folder::new("ocr-text");
+    let converter = Converter { language: Language::French, tesseract: Some(tesseract), ..Converter::default() };
+    let with_ocr = |kind, id: &str, file: &Path| {
+        let input = [catalog::input_for_extension(&file.extension().unwrap().to_string_lossy())];
+        catalog::actions(kind, &input, &abilities(true), Language::French).into_iter().find(|a| a.id == id).unwrap()
+    };
+
+    // Une page de texte rendue en image : un « scan ».
+    let pdf = folder.path("lettre.pdf");
+    text_pdf(&pdf, 1, None);
+    let scan = converter.perform(&action(WheelKind::Conversion, "render_pages:png", &[&pdf]), std::slice::from_ref(&pdf)).unwrap().remove(0);
+
+    let text = converter.perform(&with_ocr(WheelKind::Tools, "extract_text", &scan), std::slice::from_ref(&scan)).unwrap();
+    assert_eq!(text, [folder.path("lettre.txt")]);
+    let recognized = fs::read_to_string(&text[0]).unwrap();
+    assert!(recognized.contains("Bonjour Bergamote"), "{recognized}");
+
+    // « Cherchable » : un PDF qui montre l'image et porte son texte.
+    let searchable = converter.perform(&with_ocr(WheelKind::Tools, "make_searchable", &scan), std::slice::from_ref(&scan)).unwrap();
+    assert_eq!(searchable, [folder.path("lettre (cherchable).pdf")]);
+    let layer = pdf_extract::extract_text(&searchable[0]).unwrap();
+    assert!(layer.contains("Bonjour"), "{layer}");
+
+    // Un PDF fait d'images seulement passe aussi par l'OCR, page par page.
+    let image_only = converter.perform(&action(WheelKind::Conversion, "merge_pdf", &[&scan]), std::slice::from_ref(&scan)).unwrap().remove(0);
+    let extracted = converter.perform(&with_ocr(WheelKind::Tools, "extract_text", &image_only), std::slice::from_ref(&image_only)).unwrap();
+    assert!(fs::read_to_string(&extracted[0]).unwrap().contains("Bonjour Bergamote"));
+    let searchable = converter.perform(&with_ocr(WheelKind::Tools, "make_searchable", &image_only), std::slice::from_ref(&image_only)).unwrap();
+    assert!(pdf_extract::extract_text(&searchable[0]).unwrap().contains("Bonjour"));
 }

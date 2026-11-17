@@ -1,0 +1,15 @@
+# Environnement de développement et de test de l'app Linux : Ubuntu, GTK 4, un serveur X virtuel,
+# un compositeur, un gestionnaire de fichiers et de quoi simuler la souris et le clavier.
+#
+#   linux/scripts/docker-test.sh
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential ca-certificates curl pkg-config libgtk-4-dev \
+      xvfb xdotool x11-utils x11-xserver-utils openbox picom imagemagick dbus-x11 \
+      pcmanfm adwaita-icon-theme fonts-dejavu-core \
+      tesseract-ocr tesseract-ocr-fra poppler-utils dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --component clippy
+ENV PATH=/root/.cargo/bin:$PATH CARGO_TARGET_DIR=/target
+WORKDIR /src/linux

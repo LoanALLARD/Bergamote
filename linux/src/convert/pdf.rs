@@ -177,7 +177,7 @@ pub fn render_selected(
         let pixmap = hayro::render(page, &cache, &InterpreterSettings::default(), &RenderSettings::default(), &settings);
         let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
         // Fond blanc opaque : les valeurs prémultipliées sont les valeurs réelles.
-        let rgb: Vec<u8> = pixmap.data_as_u8_slice().chunks_exact(4).flat_map(|pixel| [pixel[0], pixel[1], pixel[2]]).collect();
+        let rgb: Vec<u8> = pixmap.data_as_u8_slice().as_chunks::<4>().0.iter().flat_map(|pixel| [pixel[0], pixel[1], pixel[2]]).collect();
         let image = RgbImage::from_raw(width, height, rgb).ok_or(RenderError::Unreadable)?;
         each(index, count, DynamicImage::ImageRgb8(image)).map_err(RenderError::Page)?;
     }

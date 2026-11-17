@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Bergamote
+GenericName=File converter
+GenericName[fr]=Convertisseur de fichiers
+Comment=Drag files, tap a key, drop them on a slice
+Comment[fr]=Glissez des fichiers, tapez une touche, déposez-les sur une part
+Exec=bergamote
+Icon=bergamote
+Terminal=false
+Categories=Utility;Graphics;
+Keywords=convert;image;pdf;compress;ocr;
+Keywords[fr]=convertir;image;pdf;compresser;ocr;
+StartupNotify=false

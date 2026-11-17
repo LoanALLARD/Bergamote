@@ -16,3 +16,6 @@ pub mod i18n;
 pub mod naming;
 pub mod sound;
 pub mod summary;
+
+/// Version du cœur.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
