@@ -64,7 +64,7 @@ public class CatalogTests
 {
     private static readonly PlatformAbilities Windows = new(
         ["png", "jpeg", "tiff", "gif", "bmp"],
-        ["convert_images", "render_pages", "extract_text", "compress", "strip_metadata", "merge_pdf"]);
+        ["convert_images", "render_pages", "extract_text", "ocr", "compress", "strip_metadata", "merge_pdf"]);
 
     private static FileInput Image(string format) => new(FileCategory.Image, format);
 

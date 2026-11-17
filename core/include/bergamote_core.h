@@ -21,6 +21,15 @@ typedef struct BgmDetector BgmDetector;
 const char *bgm_core_version(void);
 void bgm_string_free(char *text);
 
+/* Langue : "fr" ou "en". Les titres des parts et les textes suivent la langue courante.
+ * bgm_language et bgm_resolve_language renvoient des chaînes statiques, à ne pas libérer.
+ * bgm_resolve_language : réglage ("system", "fr", "en") et langue du système ("fr-FR"…).
+ * bgm_text : texte partagé d'après sa clé (core/src/i18n.rs), NULL si la clé n'existe pas. */
+bool bgm_set_language(const char *code);
+const char *bgm_language(void);
+const char *bgm_resolve_language(const char *preference, const char *system_locale);
+char *bgm_text(const char *key);
+
 /* Geste */
 BgmDetector *bgm_detector_new(void);
 void bgm_detector_free(BgmDetector *detector);

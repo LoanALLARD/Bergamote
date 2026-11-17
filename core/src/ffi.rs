@@ -20,6 +20,7 @@ use serde::Deserialize;
 
 use crate::catalog::{self, Input, Platform};
 use crate::detector::{Decision, Detector, Sample, WheelKind};
+use crate::i18n::{self, Language};
 use crate::{geometry, naming, sound, summary};
 
 fn to_c(text: String) -> *mut c_char {
@@ -60,6 +61,47 @@ pub unsafe extern "C" fn bgm_string_free(text: *mut c_char) {
     if !text.is_null() {
         drop(CString::from_raw(text));
     }
+}
+
+// MARK: Langue
+
+fn language_code(language: Language) -> *const c_char {
+    match language {
+        Language::French => c"fr".as_ptr(),
+        Language::English => c"en".as_ptr(),
+    }
+}
+
+/// Change la langue courante (`fr`, `en`, ou un code régional comme `fr-CA`). Renvoie faux, sans
+/// rien changer, pour une langue que le cœur ne propose pas.
+#[no_mangle]
+pub unsafe extern "C" fn bgm_set_language(code: *const c_char) -> bool {
+    match from_c(code).and_then(Language::from_code) {
+        Some(language) => {
+            i18n::set_current(language);
+            true
+        }
+        None => false,
+    }
+}
+
+/// Code de la langue courante : `fr` ou `en`. Chaîne statique, à ne pas libérer.
+#[no_mangle]
+pub extern "C" fn bgm_language() -> *const c_char {
+    language_code(i18n::current())
+}
+
+/// Langue à utiliser d'après le réglage (`system`, `fr`, `en`) et la langue du système
+/// (`fr-FR`, `en_US.UTF-8`…). Chaîne statique, à ne pas libérer.
+#[no_mangle]
+pub unsafe extern "C" fn bgm_resolve_language(preference: *const c_char, system_locale: *const c_char) -> *const c_char {
+    language_code(i18n::resolve(from_c(preference).unwrap_or(""), from_c(system_locale).unwrap_or("")))
+}
+
+/// Texte partagé (réglages, menus, erreurs) dans la langue courante ; NULL si la clé n'existe pas.
+#[no_mangle]
+pub unsafe extern "C" fn bgm_text(key: *const c_char) -> *mut c_char {
+    from_c(key).and_then(|key| i18n::text(i18n::current(), key)).map_or(ptr::null_mut(), |text| to_c(text.to_owned()))
 }
 
 // MARK: Geste
@@ -148,8 +190,8 @@ struct CatalogRequest {
 }
 
 /// Requête JSON : `{"kind":1,"inputs":[{"category":"image","format":"png"}],"writable":["png"],
-/// "capabilities":null,"common":false}`. Réponse : tableau JSON d'actions, ou NULL si la requête
-/// est invalide.
+/// "readable":null,"capabilities":null,"common":false}`. Réponse : tableau JSON d'actions, titres
+/// dans la langue courante, ou NULL si la requête est invalide.
 #[no_mangle]
 pub unsafe extern "C" fn bgm_catalog(request_json: *const c_char) -> *mut c_char {
     let Some(request) = from_c(request_json).and_then(|json| serde_json::from_str::<CatalogRequest>(json).ok()) else {
@@ -157,9 +199,9 @@ pub unsafe extern "C" fn bgm_catalog(request_json: *const c_char) -> *mut c_char
     };
     let Some(kind) = kind_from(request.kind) else { return ptr::null_mut() };
     let actions = if request.common {
-        catalog::common_actions(kind, &request.platform)
+        catalog::common_actions(kind, &request.platform, i18n::current())
     } else {
-        catalog::actions(kind, &request.inputs, &request.platform)
+        catalog::actions(kind, &request.inputs, &request.platform, i18n::current())
     };
     serde_json::to_string(&actions).map_or(ptr::null_mut(), to_c)
 }
@@ -193,14 +235,14 @@ pub unsafe extern "C" fn bgm_unique_output_path(
 
 #[no_mangle]
 pub extern "C" fn bgm_created_summary(count: u32) -> *mut c_char {
-    to_c(summary::created(count as usize))
+    to_c(summary::created(count as usize, i18n::current()))
 }
 
 /// `extensions_json` : tableau JSON d'extensions ; `total_bytes` négatif : taille inconnue.
 #[no_mangle]
 pub unsafe extern "C" fn bgm_files_summary(extensions_json: *const c_char, total_bytes: i64) -> *mut c_char {
     let extensions: Vec<String> = from_c(extensions_json).and_then(|json| serde_json::from_str(json).ok()).unwrap_or_default();
-    to_c(summary::files(&extensions, u64::try_from(total_bytes).ok()))
+    to_c(summary::files(&extensions, u64::try_from(total_bytes).ok(), i18n::current()))
 }
 
 // MARK: Son
@@ -240,6 +282,24 @@ mod tests {
             assert!(response.starts_with(r#"[{"id":"convert_images:jpeg","title":"JPEG""#), "{response}");
             let invalid = CString::new("{").unwrap();
             assert!(bgm_catalog(invalid.as_ptr()).is_null());
+        }
+    }
+
+    /// Seul test à changer la langue globale : les autres n'en dépendent pas.
+    #[test]
+    fn language_through_ffi() {
+        unsafe {
+            let cstr = |text: *const c_char| CStr::from_ptr(text).to_str().unwrap();
+            assert_eq!(cstr(bgm_language()), "fr");
+            assert_eq!(cstr(bgm_resolve_language(c"system".as_ptr(), c"en_GB.UTF-8".as_ptr())), "en");
+            assert_eq!(cstr(bgm_resolve_language(c"fr".as_ptr(), c"en-US".as_ptr())), "fr");
+            assert!(!bgm_set_language(c"de".as_ptr()));
+            assert!(bgm_set_language(c"en".as_ptr()));
+            assert_eq!(take(bgm_text(c"menu.quit".as_ptr())), "Quit");
+            assert_eq!(take(bgm_created_summary(2)), "2 files created next to the originals");
+            assert!(bgm_text(c"inconnue".as_ptr()).is_null());
+            assert!(bgm_set_language(c"fr-FR".as_ptr()));
+            assert_eq!(take(bgm_text(c"menu.quit".as_ptr())), "Quitter");
         }
     }
 

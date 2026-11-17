@@ -22,7 +22,7 @@ public sealed class WindowsFileConverter
     /// </summary>
     public static readonly PlatformAbilities Abilities = new(
         ["png", "jpeg", "tiff", "gif", "bmp"],
-        ["convert_images", "render_pages", "extract_text", "compress", "strip_metadata", "merge_pdf"]);
+        ["convert_images", "render_pages", "extract_text", "ocr", "compress", "strip_metadata", "merge_pdf"]);
 
     public string? OutputDirectory { get; init; }
     public double ImageQuality { get; init; } = 0.85;
