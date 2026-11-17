@@ -24,7 +24,7 @@ use super::x11::X11;
 pub const DIAMETER: i32 = 340;
 const OUTER_RADIUS: f64 = 160.0;
 const INNER_RADIUS: f64 = 62.0;
-const LABEL_WIDTH: i32 = 78;
+const LABEL_WIDTH: i32 = 96;
 const CENTRE_WIDTH: i32 = 98;
 /// Décalage vertical de l'icône et du titre autour du milieu de l'étiquette.
 const ICON_OFFSET: f64 = 9.0;

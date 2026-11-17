@@ -25,6 +25,8 @@ openbox >/dev/null 2>&1 &
 sleep 1
 
 convert -size 400x300 gradient:blue-yellow "$WORK/photo.png"
+mkdir -p "$WORK/files"
+convert -size 300x200 gradient:red-white "$WORK/files/scan.png"
 
 dbus-run-session -- bash -s <<INNER
 "$BIN/bergamote" --background 2> "$OUT/bergamote.log" &
@@ -78,6 +80,35 @@ xdotool key Down Down Return
 sleep 1.2
 xdotool search --name "Bergamote Settings" > "$OUT/settings-english.txt" || true
 import -window root "$OUT/7-settings-english.png"
+
+# Second glisser, depuis un vrai gestionnaire de fichiers (PCManFM, une autre bibliothèque
+# d'interface que la nôtre), avec Ctrl : le camembert d'outils, puis la part « Anonymize » (à droite).
+# L'app est maintenant en anglais : le fichier produit porte le suffixe anglais.
+xdotool key alt+F4 # referme les réglages
+sleep 0.5
+pkill -f drag_source
+pcmanfm --no-desktop "$WORK/files" >/dev/null 2>&1 &
+sleep 4
+manager=\$(xdotool search --class pcmanfm | tail -n 1)
+xdotool windowsize "\$manager" 520 420
+xdotool windowmove "\$manager" 40 40
+sleep 1
+xdotool mousemove 243 157 mousedown 1
+for step in \$(seq 1 20); do xdotool mousemove \$((243 + step * 20)) \$((157 + step * 12)); sleep 0.03; done
+sleep 0.4
+xdotool keydown ctrl; sleep 0.15; xdotool keyup ctrl
+sleep 0.3
+xdotool mousemove 645 398; sleep 0.2; xdotool mousemove 643 397
+sleep 0.8
+import -window root "$OUT/5b-tools-wheel.png"
+for step in \$(seq 1 11); do xdotool mousemove \$((643 + step * 10)) 397; sleep 0.03; done
+sleep 0.4
+import -window root "$OUT/5c-tools-slice.png"
+xdotool mouseup 1
+sleep 2.5
+pkill pcmanfm
+sleep 0.5
+import -window root "$OUT/8-after.png"
 INNER
 
 status=0
@@ -90,6 +121,9 @@ check "résultat : 1 fichier créé" "la conversion aboutit"
 if [ -s "$OUT/settings-window.txt" ]; then echo "ok    relancer l'app ouvre les réglages"; else echo "ÉCHEC pas de fenêtre de réglages"; status=1; fi
 if grep -q -- "--background" "$OUT/autostart.desktop" 2>/dev/null; then echo "ok    le réglage crée l'entrée de démarrage automatique"; else echo "ÉCHEC pas d'entrée de démarrage automatique"; status=1; fi
 if [ -s "$OUT/settings-english.txt" ]; then echo "ok    changer de langue s'applique tout de suite"; else echo "ÉCHEC la fenêtre n'est pas passée en anglais"; status=1; fi
+check "geste : Tools" "depuis un gestionnaire de fichiers, Ctrl ouvre le camembert d'outils"
+check "action : strip_metadata" "le dépôt sur « Anonymize » lance l'action"
+if [ -s "$WORK/files/scan (no metadata).png" ]; then echo "ok    scan (no metadata).png est créé à côté de l'original, nommé en anglais"; else echo "ÉCHEC scan (no metadata).png absent"; ls "$WORK/files"; status=1; fi
 if [ -s "$WORK/photo.jpeg" ]; then echo "ok    photo.jpeg est créé à côté de l'original"; else echo "ÉCHEC photo.jpeg absent"; status=1; fi
 [ "$status" -eq 0 ] || { echo "--- journal ---"; cat "$OUT/bergamote.log" "$OUT/drag_source.log"; }
 pkill -f "$BIN/bergamote" 2>/dev/null; pkill Xvfb 2>/dev/null
