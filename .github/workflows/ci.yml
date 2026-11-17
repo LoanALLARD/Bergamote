@@ -2,9 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   core:
@@ -13,9 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test
-        run: cargo test --manifest-path core/Cargo.toml
+        run: .github/scripts/run.sh cargo test --manifest-path core/Cargo.toml
       - name: Lint
-        run: cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings
+        run: .github/scripts/run.sh cargo clippy --manifest-path core/Cargo.toml --all-targets -- -D warnings
 
   mac:
     name: Mac app
@@ -25,11 +32,11 @@ jobs:
       - name: Add the Rust targets
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - name: Build the core
-        run: mac/scripts/build-core.sh
+        run: .github/scripts/run.sh mac/scripts/build-core.sh
       - name: Test
-        run: swift test --package-path mac
+        run: .github/scripts/run.sh swift test --package-path mac
       - name: Package
-        run: mac/scripts/package-release.sh
+        run: .github/scripts/run.sh mac/scripts/package-release.sh
       - uses: actions/upload-artifact@v4
         with:
           name: Bergamote-mac
@@ -44,10 +51,10 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Test
-        run: dotnet test windows/Bergamote.sln -c Release
+        run: .github/scripts/run.sh dotnet test windows/Bergamote.sln -c Release
       - name: Publish
         run: >-
-          dotnet publish windows/Bergamote.Windows -c Release -r win-x64 --self-contained
+          .github/scripts/run.sh dotnet publish windows/Bergamote.Windows -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true -o windows/publish
       - uses: actions/upload-artifact@v4
