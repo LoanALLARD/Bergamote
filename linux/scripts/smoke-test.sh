@@ -15,7 +15,7 @@ rm -rf "$OUT" && mkdir -p "$OUT"
 cargo build --quiet --bin bergamote --example drag_source || exit 1
 BIN="${CARGO_TARGET_DIR:-target}/debug"
 
-export DISPLAY=:99 XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME="$WORK/cache" LANG=fr_FR.UTF-8 BERGAMOTE_DEBUG=1 GDK_BACKEND=x11
+export DISPLAY=:99 XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME="$WORK/cache" LANG="${BERGAMOTE_TEST_LANG:-fr_FR.UTF-8}" BERGAMOTE_DEBUG=1 GDK_BACKEND=x11
 Xvfb :99 -screen 0 1280x800x24 >/dev/null 2>&1 &
 sleep 1
 openbox >/dev/null 2>&1 &

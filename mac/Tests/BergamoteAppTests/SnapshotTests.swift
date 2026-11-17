@@ -58,18 +58,24 @@ struct SnapshotTests {
     @Test func renderEachLanguage() async throws {
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         defer { Localization.apply(preference: "fr") }
-        let pdfs = try sampleFiles().filter { $0.pathExtension == "pdf" }
+        let files = try sampleFiles()
+        let (images, pdfs) = (files.filter { $0.pathExtension == "png" }, files.filter { $0.pathExtension == "pdf" })
         for language in Localization.languages.map(\.code) {
             Localization.apply(preference: language)
             #expect(Localization.current == language)
             let settings = SettingsView().environment(FolderAccessStore()).background(Color(nsColor: .windowBackgroundColor))
             try await snapshot(settings, size: CGSize(width: 480, height: 620), name: "settings-\(language)", borderless: true)
 
+            let size = CGSize(width: RadialMenuView.size, height: RadialMenuView.size)
+            let conversion = RadialMenuModel()
+            conversion.configure(kind: .conversion, files: images, actions: FileActionCatalog.actions(for: .conversion, inputs: images.map { _ in .png }))
+            conversion.highlighted = 1
+            try await snapshot(RadialMenuView(model: conversion) { _, _ in }, size: size, name: "wheel-convert-\(language)", borderless: true)
+
             let tools = RadialMenuModel()
             tools.configure(kind: .tools, files: pdfs, actions: FileActionCatalog.actions(for: .tools, inputs: pdfs.map { _ in .pdf }))
-            tools.highlighted = 0
-            tools.lastResult = FileConverter.summary(ofCreated: 2)
-            let size = CGSize(width: RadialMenuView.size, height: RadialMenuView.size)
+            tools.highlighted = 2
+            tools.lastResult = FileConverter.summary(ofCreated: 1)
             try await snapshot(RadialMenuView(model: tools) { _, _ in }, size: size, name: "wheel-tools-\(language)", borderless: true)
             let panel = MenuBarPanel(model: tools).background(Color(nsColor: .windowBackgroundColor))
             try await snapshot(panel, size: CGSize(width: 320, height: 250), name: "menu-bar-panel-\(language)", borderless: true)
