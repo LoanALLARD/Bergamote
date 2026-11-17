@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Outil de test : une fenêtre dont le contenu se glisse comme une liste de fichiers, pour
+       simuler un glisser depuis l'Explorateur (voir windows/scripts/smoke-test.ps1). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>
