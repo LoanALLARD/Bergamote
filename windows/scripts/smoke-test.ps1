@@ -120,6 +120,24 @@ try {
         Start-Sleep -Milliseconds 500
         $entry = (Get-ItemProperty -Path $run -ErrorAction SilentlyContinue).Bergamote
         Check ($entry -and $entry.Contains("Bergamote.exe")) "ticking 'Start at login' registers the app to run at sign-in"
+
+        # What Windows does at sign-in: run that registered command. The app must come up from it.
+        $app.Kill()
+        $app.WaitForExit()
+        Remove-Item -Force $debug -ErrorAction SilentlyContinue
+        if ($entry) { Start-Process -FilePath $entry.Trim('"') }
+        $deadline = (Get-Date).AddSeconds(60)
+        while (-not (Test-Path $debug) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
+        $restarted = Get-Process -Name Bergamote -ErrorAction SilentlyContinue | Select-Object -First 1
+        Check (($null -ne $restarted) -and (Test-Path $debug)) "the registered command starts the app, as a sign-in would"
+        if ($restarted) { $app = $restarted }
+
+        # Back in the settings of that new instance, untick the box.
+        Start-Process -FilePath $exe -Wait
+        $window = Find-Window "Bergamote Settings"
+        $box = Find-Inside $window "Start Bergamote at login"
+        $toggle = $box.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+        Check ($toggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) "the setting is shown as on after the restart"
         $toggle.Toggle()
         Start-Sleep -Milliseconds 500
         $entry = (Get-ItemProperty -Path $run -ErrorAction SilentlyContinue).Bergamote

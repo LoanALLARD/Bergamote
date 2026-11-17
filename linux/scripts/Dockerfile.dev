@@ -1,5 +1,5 @@
 # Environnement de développement et de test de l'app Linux : Ubuntu, GTK 4, un serveur X virtuel,
-# un compositeur, un gestionnaire de fichiers et de quoi simuler la souris et le clavier.
+# un compositeur, un gestionnaire de fichiers, le bureau XFCE et de quoi simuler la souris et le clavier.
 #
 #   linux/scripts/docker-test.sh
 FROM ubuntu:24.04
@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential ca-certificates curl pkg-config libgtk-4-dev \
       xvfb xdotool x11-utils x11-xserver-utils openbox picom imagemagick dbus-x11 \
       pcmanfm adwaita-icon-theme fonts-dejavu-core \
+      xfce4-session xfwm4 xfce4-panel xfdesktop4 xfce4-settings thunar \
       tesseract-ocr tesseract-ocr-fra poppler-utils dpkg-dev \
     && rm -rf /var/lib/apt/lists/*
 # Version de Rust fixée : les mêmes règles de clippy en local et sur la CI.

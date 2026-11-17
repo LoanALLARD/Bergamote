@@ -92,9 +92,11 @@ pub struct Tray {
 }
 
 impl Tray {
-    /// `None` quand le bureau n'a pas de zone de notification StatusNotifierItem.
+    /// `None` sans bus de session. L'icône est créée même si la zone de notification n'est pas
+    /// encore là : lancée à l'ouverture de session, l'app démarre souvent avant le tableau de
+    /// bord, et l'icône apparaît dès qu'il est prêt.
     pub fn spawn(content: TrayContent, events: Sender<TrayEvent>) -> Option<Self> {
-        Icon { content, events }.spawn().ok().map(|handle| Self { handle })
+        Icon { content, events }.assume_sni_available(true).spawn().ok().map(|handle| Self { handle })
     }
 
     pub fn update(&self, content: TrayContent) {

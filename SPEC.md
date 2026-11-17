@@ -78,7 +78,8 @@ Linux specifics:
 
 - X11 sessions. Under Wayland the app runs through XWayland and says in its settings window that
   the gesture needs an X11 session: Wayland does not let an app watch the pointer globally.
-- Launching the app again opens the settings window; `--background` starts without it (login).
+- Launching the app again opens the settings window; `--background` starts without it (login);
+  `--autostart on|off` sets start at login from a script.
 - The wheel is an override-redirect window positioned through X11; without a compositor it is
   shown directly with the common slices.
 
@@ -115,9 +116,9 @@ Changing the language applies immediately, without restarting.
 | Same behaviour through each binding | Swift tests, .NET tests |
 | Mac conversions and rendering | Swift tests, snapshot tests |
 | Windows conversions | .NET tests on a Windows runner |
-| Windows app | On a Windows runner: start-up, simulated drag, Shift, drop on a slice, converted file |
+| Windows app | On a Windows runner: start-up, simulated drag, Shift, drop on a slice, converted file; settings through UI Automation, start at login (Run entry written, then executed as a sign-in would), language switch |
 | Linux conversions | `cargo test` in `linux/` (pure Rust, any OS) |
-| Linux app | Docker with Xvfb: gesture, both wheels, drops from a test source and from a real file manager, settings, start at login, language switch |
+| Linux app | Docker with Xvfb: gesture, both wheels, drops from a test source and from a real file manager, settings, start at login, language switch (`smoke-test.sh`); and in a full XFCE session: opening the session starts the app from its autostart entry, drag from Thunar, tray icon registered with the panel (`desktop-test.sh`) |
 | Mac app | Swift tests, snapshots of every screen in both languages, and on the macOS runner a simulated drag, Shift, drop on a slice and converted file (`mac/scripts/smoke-test.swift`; it needs the accessibility permission) |
 
 ## 6. Out of scope for now
