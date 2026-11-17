@@ -251,7 +251,8 @@ swift test --package-path mac                                    # Mac: gesture,
 dotnet test windows/Bergamote.Core.Tests                         # .NET wrapper of the core (runs on Mac too)
 dotnet test windows/Bergamote.sln                                # everything Windows, on Windows
 cargo test --manifest-path linux/Cargo.toml                      # Linux conversions (pure Rust, run anywhere)
-linux/scripts/docker.sh scripts/smoke-test.sh                    # Linux app: a real drag and drop under Xvfb, in Docker
+linux/scripts/docker.sh scripts/smoke-test.sh                    # Linux app: real drags and drops under Xvfb, in Docker
+pwsh -File windows/scripts/smoke-test.ps1                        # Windows app: a real drag and drop, on Windows
 ```
 
 Mac extras, from the `mac/` folder:
@@ -263,7 +264,8 @@ scripts/package-release.sh                            # universal .zip for GitHu
 ```
 
 [CI](.github/workflows/ci.yml) runs on every push: core tests and lint, then build, tests and
-package for each app (the Linux job includes the drag-and-drop test). Pushing a `v*` tag runs
+package for each app. The Windows and Linux jobs also drive the packaged app like a person would:
+drag a file, tap the key, drop it on a slice, and check the converted file. Pushing a `v*` tag runs
 [release.yml](.github/workflows/release.yml), which publishes the three packages as a GitHub
 release.
 

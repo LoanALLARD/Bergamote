@@ -100,8 +100,10 @@ Changing the language applies immediately, without restarting.
 - `ci.yml`, on every push and pull request:
   - **core**: tests and clippy (Linux).
   - **mac**: universal core, Swift tests, universal `.zip`.
-  - **windows**: .NET tests (core wrapper and conversions), self-contained `Bergamote.exe`.
-  - **linux**: tests, clippy, release build, start-up check under Xvfb, `.deb` and `.tar.gz`.
+  - **windows**: .NET tests (core wrapper and conversions), self-contained `Bergamote.exe`, then
+    a drag and drop on the runner's desktop (`windows/scripts/smoke-test.ps1`).
+  - **linux**: tests, clippy, drags and drops under Xvfb (`linux/scripts/smoke-test.sh`), release
+    build, `.deb` and `.tar.gz`.
 - `release.yml`, on a `v*` tag: the same builds, then a GitHub release carrying the three packages.
 - A failing step repeats its telling lines as an annotation (`.github/scripts/run.sh`).
 
@@ -113,8 +115,10 @@ Changing the language applies immediately, without restarting.
 | Same behaviour through each binding | Swift tests, .NET tests |
 | Mac conversions and rendering | Swift tests, snapshot tests |
 | Windows conversions | .NET tests on a Windows runner |
+| Windows app | On a Windows runner: start-up, simulated drag, Shift, drop on a slice, converted file |
 | Linux conversions | `cargo test` in `linux/` (pure Rust, any OS) |
-| Linux app | Docker with Xvfb: start-up, gesture, wheel rendering, drop |
+| Linux app | Docker with Xvfb: gesture, both wheels, drops from a test source and from a real file manager, settings, start at login, language switch |
+| Mac app | Swift tests, snapshots of every screen in both languages; the gesture itself is checked by hand |
 
 ## 6. Out of scope for now
 
