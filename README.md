@@ -252,7 +252,8 @@ dotnet test windows/Bergamote.Core.Tests                         # .NET wrapper 
 dotnet test windows/Bergamote.sln                                # everything Windows, on Windows
 cargo test --manifest-path linux/Cargo.toml                      # Linux conversions (pure Rust, run anywhere)
 linux/scripts/docker.sh scripts/smoke-test.sh                    # Linux app: real drags and drops under Xvfb, in Docker
-pwsh -File windows/scripts/smoke-test.ps1                        # Windows app: a real drag and drop, on Windows
+pwsh -File windows/scripts/smoke-test.ps1                        # Windows app: a real drag and drop and the settings, on Windows
+swift mac/scripts/smoke-test.swift mac/.build/release/Bergamote  # Mac app: a real drag and drop (needs the accessibility permission)
 ```
 
 Mac extras, from the `mac/` folder:
