@@ -99,7 +99,7 @@ Changing the language applies immediately, without restarting.
 
 - `ci.yml`, on every push and pull request:
   - **core**: tests and clippy (Linux).
-  - **mac**: universal core, Swift tests, universal `.zip`.
+  - **mac**: universal core, Swift tests, a drag and drop on the runner's desktop, universal `.zip`.
   - **windows**: .NET tests (core wrapper and conversions), self-contained `Bergamote.exe`, then
     a drag and drop on the runner's desktop (`windows/scripts/smoke-test.ps1`).
   - **linux**: tests, clippy, drags and drops under Xvfb (`linux/scripts/smoke-test.sh`), release
@@ -118,7 +118,7 @@ Changing the language applies immediately, without restarting.
 | Windows app | On a Windows runner: start-up, simulated drag, Shift, drop on a slice, converted file |
 | Linux conversions | `cargo test` in `linux/` (pure Rust, any OS) |
 | Linux app | Docker with Xvfb: gesture, both wheels, drops from a test source and from a real file manager, settings, start at login, language switch |
-| Mac app | Swift tests, snapshots of every screen in both languages. No automated drag: simulating input on macOS needs an accessibility permission a CI runner does not have |
+| Mac app | Swift tests, snapshots of every screen in both languages, and on the macOS runner a simulated drag, Shift, drop on a slice and converted file (`mac/scripts/smoke-test.swift`; it needs the accessibility permission) |
 
 ## 6. Out of scope for now
 
