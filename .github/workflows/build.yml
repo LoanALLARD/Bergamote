@@ -39,7 +39,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Bergamote-mac
-          path: mac/build/Bergamote-*.zip
+          path: |
+            mac/build/Bergamote-*.dmg
+            mac/build/Bergamote-*.zip
           if-no-files-found: error
 
   windows:
@@ -61,10 +63,27 @@ jobs:
         run: |
           .github/scripts/run.sh dotnet build windows/Bergamote.DragSource -c Release
           .github/scripts/run.sh pwsh -NoProfile -File windows/scripts/smoke-test.ps1
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          [xml]$props = Get-Content windows/Directory.Build.props
+          $version = $props.Project.PropertyGroup.Version
+          $output = & $iscc "/DAppVersion=$version" windows\installer\Bergamote.iss 2>&1
+          $output | Select-Object -Last 15 | Write-Host
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host ("::error title=Inno Setup::" + (($output | Select-Object -Last 25) -join "%0A"))
+            exit 1
+          }
+      - name: Install, start and uninstall
+        run: .github/scripts/run.sh pwsh -NoProfile -File windows/scripts/installer-test.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: Bergamote-windows-x64
-          path: windows/publish/Bergamote.exe
+          path: |
+            windows/publish/Bergamote.exe
+            windows/publish/Bergamote-Setup-*.exe
           if-no-files-found: error
 
   linux:

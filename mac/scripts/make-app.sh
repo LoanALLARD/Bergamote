@@ -3,7 +3,7 @@
 #
 #   scripts/make-app.sh                      # signature ad hoc (usage local)
 #   SIGN_IDENTITY="Developer ID Application: …" scripts/make-app.sh   # pour notariser ensuite
-#   SWIFT_BUILD_FLAGS="--arch arm64 --arch x86_64" scripts/make-app.sh   # binaire universel
+#   ARCHS="arm64 x86_64" scripts/make-app.sh   # binaire universel
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,14 +14,19 @@ if [[ ! -d "$FRAMEWORK" || -n "$(find ../core/src ../core/include ../core/Cargo.
 fi
 
 CONFIG="${CONFIG:-release}"
-read -r -a EXTRA_FLAGS <<< "${SWIFT_BUILD_FLAGS:-}"
-swift build -c "$CONFIG" --product Bergamote ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"}
-BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"})"
+# ARCHS="arm64 x86_64" : binaire universel. Chaque architecture est compilée séparément puis
+# assemblée par lipo (la compilation multi-architecture de SwiftPM ne lie pas toujours le cœur).
+ARCHS="${ARCHS:-$(uname -m)}"
+BINARIES=()
+for ARCH in $ARCHS; do
+  swift build -c "$CONFIG" --product Bergamote --arch "$ARCH"
+  BINARIES+=("$(swift build -c "$CONFIG" --show-bin-path --arch "$ARCH")/Bergamote")
+done
 
 APP="build/Bergamote.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/Bergamote" "$APP/Contents/MacOS/"
+lipo -create "${BINARIES[@]}" -output "$APP/Contents/MacOS/Bergamote"
 cp Packaging/Info.plist "$APP/Contents/"
 cp Packaging/AppIcon.icns "$APP/Contents/Resources/"   # généré par brand/make-icons.swift
 

@@ -263,11 +263,11 @@
           <div class="actions">
             <a class="button primary" href="https://github.com/LoanALLARD/Bergamote/releases/latest">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
-              Download for Mac
+              Download
             </a>
-            <a class="button" href="#windows">
+            <a class="button" href="#install">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
-              Windows and Linux
+              How to install
             </a>
             <a class="button" href="https://github.com/LoanALLARD/Bergamote">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
@@ -408,28 +408,28 @@
           <div class="card">
             <h3>Mac</h3>
             <ol>
-              <li>Download the latest <strong>Bergamote-x.y.z.zip</strong> from <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">GitHub Releases</a>.</li>
-              <li>Unzip it and move <strong>Bergamote.app</strong> to <strong>Applications</strong>.</li>
+              <li>Download the <strong>.dmg</strong> from the <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">latest release</a>.</li>
+              <li>Open it and drag <strong>Bergamote</strong> onto <strong>Applications</strong>.</li>
               <li>Open it. The Bergamote icon appears in the menu bar.</li>
               <li>The first time a result is saved, allow your <strong>home folder</strong> once: every folder inside it is covered.</li>
             </ol>
-            <p class="note">Releases are not notarized yet. If macOS refuses to open the app the first time, right-click it and choose <strong>Open</strong>, or click <strong>Open Anyway</strong> in System Settings › Privacy &amp; Security. To start Bergamote with your Mac, turn on <strong>Start at login</strong> in Settings.</p>
+            <p class="note">Releases are not notarized yet. If macOS refuses to open the app the first time, click <strong>Open Anyway</strong> in System Settings › Privacy &amp; Security. To start Bergamote with your Mac, turn on <strong>Start at login</strong> in Settings.</p>
           </div>
           <div class="card" id="windows">
             <h3>Windows <span class="tag">Preview</span></h3>
             <ol>
-              <li>Open the latest <a href="https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml">CI run</a> of the <strong>main</strong> branch (downloads need a GitHub account).</li>
-              <li>Download the <strong>Bergamote-windows-x64</strong> artifact and unzip it.</li>
-              <li>Run <strong>Bergamote.exe</strong>. Its icon appears in the notification area; nothing to install, no .NET needed.</li>
+              <li>Download the <strong>setup.exe</strong> from the <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">latest release</a> and run it: no administrator rights needed.</li>
+              <li>Launch <strong>Bergamote</strong> from the Start menu. Its icon appears in the notification area.</li>
+              <li>Launching it again opens its settings.</li>
               <li>Drag files from Explorer and tap <strong>Shift</strong> or <strong>Ctrl</strong>.</li>
             </ol>
-            <p class="note">The executable is not signed yet: if SmartScreen stops it, click <strong>More info</strong>, then <strong>Run anyway</strong>. Starting with Windows can be turned on in Settings. Windows 10 (1809) or later, x64.</p>
+            <p class="note">The installer is not signed yet: if SmartScreen stops it, click <strong>More info</strong>, then <strong>Run anyway</strong>. A <strong>portable .exe</strong> is there too if you prefer not to install. Windows 10 (1809) or later, x64.</p>
           </div>
           <div class="card" id="linux">
             <h3>Linux <span class="tag">Preview</span></h3>
             <ol>
-              <li>From the same <a href="https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml">CI run</a>, download the <strong>Bergamote-linux</strong> artifact.</li>
-              <li>Install the <strong>.deb</strong> (Debian, Ubuntu 24.04 and later, Mint), or unpack the <strong>.tar.gz</strong> and run <code>install.sh</code>.</li>
+              <li>Download the <strong>.deb</strong> or the <strong>.tar.gz</strong> from the <a href="https://github.com/LoanALLARD/Bergamote/releases/latest">latest release</a>.</li>
+              <li>Install the .deb with <code>sudo apt install ./bergamote_*.deb</code> (Debian, Ubuntu 24.04 and later, Mint), or unpack the .tar.gz and run <code>install.sh</code>.</li>
               <li>Launch <strong>Bergamote</strong> from your applications menu: its settings open, and its icon joins the tray.</li>
               <li>Drag files from your file manager and tap <strong>Shift</strong> or <strong>Ctrl</strong>.</li>
             </ol>

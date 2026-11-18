@@ -105,7 +105,9 @@ Changing the language applies immediately, without restarting.
     a drag and drop on the runner's desktop (`windows/scripts/smoke-test.ps1`).
   - **linux**: tests, clippy, drags and drops under Xvfb (`linux/scripts/smoke-test.sh`), release
     build, `.deb` and `.tar.gz`.
-- `release.yml`, on a `v*` tag: the same builds, then a GitHub release carrying the three packages.
+- `release.yml`, on a `v*` tag: the same builds, then a GitHub release carrying a Mac disk image
+  and zip, a Windows setup program (built with Inno Setup, installed and uninstalled in CI) and a
+  portable executable, a `.deb` and a `.tar.gz`, with their checksums.
 - A failing step repeats its telling lines as an annotation (`.github/scripts/run.sh`).
 
 ## 5. Verification

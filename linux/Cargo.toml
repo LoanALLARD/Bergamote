@@ -1,6 +1,6 @@
 [package]
 name = "bergamote"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 description = "Radial file converter: drag files, tap a key, drop them on a slice"
 license = "LicenseRef-Proprietary"

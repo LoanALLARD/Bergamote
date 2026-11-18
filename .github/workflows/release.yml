@@ -22,12 +22,31 @@ jobs:
           path: artifacts
       - name: Name the packages after the release
         run: |
+          version="${GITHUB_REF_NAME#v}"
           mkdir release
-          cp artifacts/Bergamote-mac/*.zip "release/Bergamote-${GITHUB_REF_NAME}-mac.zip"
-          cp artifacts/Bergamote-windows-x64/Bergamote.exe "release/Bergamote-${GITHUB_REF_NAME}-windows-x64.exe"
+          cp artifacts/Bergamote-mac/*.dmg "release/Bergamote-${version}-mac.dmg"
+          cp artifacts/Bergamote-mac/*.zip "release/Bergamote-${version}-mac.zip"
+          cp artifacts/Bergamote-windows-x64/Bergamote-Setup-*.exe "release/Bergamote-${version}-windows-x64-setup.exe"
+          cp artifacts/Bergamote-windows-x64/Bergamote.exe "release/Bergamote-${version}-windows-x64-portable.exe"
           cp artifacts/Bergamote-linux/*.deb artifacts/Bergamote-linux/*.tar.gz release/
           (cd release && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --title "Bergamote ${GITHUB_REF_NAME#v}" --generate-notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cat > notes.md <<NOTES
+          ## Download
+
+          | System | File | How to install |
+          |---|---|---|
+          | **macOS 14 or later** (Apple silicon and Intel) | \`Bergamote-${version}-mac.dmg\` | Open it and drag Bergamote onto Applications. The app is not notarized yet: if macOS refuses to open it the first time, go to **System Settings › Privacy & Security** and click **Open Anyway**. |
+          | **Windows 10 or 11** (x64), preview | \`Bergamote-${version}-windows-x64-setup.exe\` | Run it; no administrator rights needed. It is not signed yet: on the SmartScreen warning, choose **More info**, then **Run anyway**. |
+          | **Linux** (X11 session), preview | \`bergamote_${version}_amd64.deb\` | \`sudo apt install ./bergamote_${version}_amd64.deb\` on Debian and Ubuntu 24.04 or later. |
+
+          Also attached: a zip of the Mac app, a portable Windows executable that needs no installation, a \`.tar.gz\` with an \`install.sh\` for other Linux distributions, and \`SHA256SUMS.txt\`.
+
+          The interface is in English and French. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for what each system can do.
+          NOTES
+          sed -i 's/^          //' notes.md
+          gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --title "Bergamote ${version}" --notes-file notes.md --generate-notes

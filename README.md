@@ -118,14 +118,16 @@ installed.
 **Requirements:** macOS 14 Sonoma or later, on Apple silicon or Intel; Windows 10 (1809) or later,
 x64; or a Linux desktop with GTK 4 and an X11 session.
 
-### Mac, from a release
+Every version is on the [Releases](https://github.com/LoanALLARD/Bergamote/releases/latest) page.
+The packages are not signed yet, so each system asks for a confirmation the first time.
 
-1. Download the latest `Bergamote-x.y.z.zip` from the [Releases](https://github.com/LoanALLARD/Bergamote/releases/latest) page.
-2. Unzip it and move **Bergamote.app** to your **Applications** folder.
-3. Open it. Release builds are not notarized yet, so the first time macOS may refuse to open the
-   app: right-click it and choose **Open**, or go to **System Settings › Privacy & Security** and
-   click **Open Anyway**.
-4. The Bergamote icon appears in the menu bar. The first time the wheel saves a result, macOS asks you to
+### Mac
+
+1. Download **Bergamote-x.y.z-mac.dmg**, open it and drag **Bergamote** onto **Applications**.
+2. Open it. Release builds are not notarized yet, so the first time macOS may refuse to open the
+   app: go to **System Settings › Privacy & Security** and click **Open Anyway** (on older
+   versions of macOS, right-click the app and choose **Open**).
+3. The Bergamote icon appears in the menu bar. The first time the wheel saves a result, macOS asks you to
    allow a folder: choose your **home folder** once and every folder inside it is covered. You can
    revoke it in Settings.
 
@@ -133,24 +135,26 @@ To start Bergamote with your Mac, turn on **Start Bergamote at login** in Settin
 
 ### Windows (preview)
 
-Each build of the `main` branch produces a self-contained `Bergamote.exe` (no .NET install needed),
-available from the **Bergamote-windows-x64** artifact of the latest
-[CI run](https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml). Run it: the Bergamote icon
-appears in the notification area. The executable is not signed yet, so SmartScreen may ask you to
-confirm with **More info › Run anyway**. Starting with Windows can be turned on in Settings.
+1. Download **Bergamote-x.y.z-windows-x64-setup.exe** and run it. It installs for your user only,
+   without administrator rights, and adds Bergamote to the Start menu. SmartScreen may ask you to
+   confirm with **More info › Run anyway**.
+2. Launch **Bergamote**: its icon appears in the notification area. Launching it again opens its
+   settings, where starting with Windows can be turned on.
+
+Prefer not to install anything? **Bergamote-x.y.z-windows-x64-portable.exe** is the same app as a
+single file. To remove the installed app, use **Settings › Apps**.
 
 ### Linux (preview)
 
-Each build of the `main` branch produces a `.deb` (Debian, Ubuntu 24.04 and later, Mint…) and a
-`.tar.gz` for other distributions, in the **Bergamote-linux** artifact of the latest
-[CI run](https://github.com/LoanALLARD/Bergamote/actions/workflows/ci.yml).
+Download the `.deb` (Debian, Ubuntu 24.04 and later, Mint…) or the `.tar.gz` for other
+distributions.
 
 ```bash
-sudo apt install ./bergamote_1.0.0_amd64.deb     # Debian and Ubuntu
+sudo apt install ./bergamote_0.1.0_amd64.deb     # Debian and Ubuntu
 ```
 
 ```bash
-tar xzf bergamote-1.0.0-linux-x86_64.tar.gz && bergamote-1.0.0-linux-x86_64/install.sh   # elsewhere, into ~/.local
+tar xzf bergamote-0.1.0-linux-x86_64.tar.gz && bergamote-0.1.0-linux-x86_64/install.sh   # elsewhere, into ~/.local
 ```
 
 Launch **Bergamote** from your applications menu: its settings open, and its icon appears in the
@@ -262,14 +266,14 @@ Mac extras, from the `mac/` folder:
 ```bash
 BERGAMOTE_SNAPSHOT_DIR=build/snapshots swift test     # also renders the wheels and the menu bar panel
 swift scripts/make-samples.swift SampleDocs           # fictitious PDFs, scan, image, .docx and .txt to try
-scripts/package-release.sh                            # universal .zip for GitHub Releases
+scripts/package-release.sh                            # universal .dmg and .zip for GitHub Releases
 ```
 
 [CI](.github/workflows/ci.yml) runs on every push: core tests and lint, then build, tests and
 package for each app. The Windows and Linux jobs also drive the packaged app like a person would:
 drag a file, tap the key, drop it on a slice, and check the converted file. Pushing a `v*` tag runs
-[release.yml](.github/workflows/release.yml), which publishes the three packages as a GitHub
-release.
+[release.yml](.github/workflows/release.yml), which publishes the installers (a `.dmg`, a Windows
+setup program, a `.deb`) and their portable counterparts as a GitHub release.
 
 The website is a single static page in [`docs/`](docs/), published with GitHub Pages from the
 `main` branch. Preview it locally with `python3 -m http.server --directory docs`.
@@ -280,7 +284,7 @@ To debug the gesture on the Mac, launch with `open mac/build/Bergamote.app --arg
 
 ## Roadmap
 
-- Notarized, signed releases, and a signed Windows installer
+- Notarized, signed releases on the Mac and a signed Windows installer
 - Option panels for tools (compression level, output format)
 - PDF compression on Windows and Linux, searchable PDFs on Windows
 - A gesture that works under Wayland

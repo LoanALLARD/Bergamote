@@ -19,13 +19,26 @@ public struct VisionOCR: Sendable {
         try lines(in: image).map(\.text)
     }
 
+    private static func request(level: VNRequestTextRecognitionLevel, languages: [String], correction: Bool) -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = level
+        request.recognitionLanguages = languages
+        request.usesLanguageCorrection = correction
+        return request
+    }
+
     /// Lignes reconnues avec leur position, de haut en bas puis de gauche à droite.
     public func lines(in image: CGImage) throws -> [Line] {
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = languages
-        request.usesLanguageCorrection = usesLanguageCorrection
-        try VNImageRequestHandler(cgImage: image).perform([request])
+        // Le mode précis s'appuie sur un modèle que macOS prépare à la demande ; il arrive que le
+        // système n'y parvienne pas. Le mode rapide, lui, répond toujours : mieux vaut son texte
+        // qu'une erreur.
+        var request = Self.request(level: .accurate, languages: languages, correction: usesLanguageCorrection)
+        do {
+            try VNImageRequestHandler(cgImage: image).perform([request])
+        } catch {
+            request = Self.request(level: .fast, languages: languages, correction: usesLanguageCorrection)
+            try VNImageRequestHandler(cgImage: image).perform([request])
+        }
         // Les rectangles de Vision ont leur origine en bas à gauche : y décroissant = lecture vers le bas.
         let observations = (request.results ?? []).sorted {
             abs($0.boundingBox.midY - $1.boundingBox.midY) > 0.01
